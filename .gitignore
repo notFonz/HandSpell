@@ -9,9 +9,6 @@ wheels/
 # Virtual environments
 .venv
 
-# Raw Data
-raw_data/
-
 # Standard python ignores
 *.egg-info
 .coverage
@@ -44,6 +41,7 @@ data/
 models/
 *.joblib
 *.h5
+*.pt
 
 # Any pickle files
 *.pickle
@@ -56,6 +54,9 @@ models/
 .credentials
 secrets.toml
 *.json
+
+# YOLO detections
+/runs
 
 # User defined extras
 # Complete to your desire
