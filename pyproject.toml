@@ -7,7 +7,12 @@ authors = [
     { name = "Afonso Silva"}
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "matplotlib>=3.11.2",
+    "opencv-python>=5.0.0.93",
+    "scikit-image>=0.26.0",
+    "torch>=2.14.1",
+]
 
 [project.scripts]
 handspell = "handspell:main"
