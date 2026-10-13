@@ -14,8 +14,8 @@ from .predict import predict_letter
     It includes the endpoint for predicting letters from uploaded images.
 """
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "..", "models", "kazimh_handspell_mnist_custom_cnn.h5")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL_PATH = os.path.join(BASE_DIR, "models", "mnist_baseline_model.keras")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
