@@ -1,13 +1,11 @@
 # Imports for general model training
 import numpy as np
 import pandas as pd
-import joblib
+import keras
 
 from tensorflow.keras import Sequential, Input, layers
 from tensorflow.keras import optimizers
 from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.utils import to_categorical
-from keras.ops import expand_dims
 
 from sklearn.model_selection import train_test_split
 
@@ -134,20 +132,16 @@ def evaluate_model(X_test, y_test, model):
     return model.evaluate(X_test, y_test, verbose=1)
 
 
-def save_model(model_file_name: str, model):
+def save_model(model, model_file_name: str="models/model_hand28x28_letter.keras"):
     """Function to save model"""
 
-    with open(model_file_name, "wb") as file:
-
-        joblib.dump(model, file)
+    model.save(model_file_name)
 
     return
 
 def load_model(path: str):
     """Function to load model"""
 
-    with open(path, "rb") as file:
-
-        loaded_model = joblib.load(file)
+    loaded_model = keras.models.load_model(path)
 
     return loaded_model
