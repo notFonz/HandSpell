@@ -12,6 +12,7 @@ dependencies = [
     "opencv-python>=5.0.0.93",
     "scikit-image>=0.26.0",
     "torch>=2.14.1",
+    "ultralytics>=8.4.176",
 ]
 
 [project.scripts]
