@@ -46,12 +46,11 @@ root = tk.Tk()
 root.withdraw()
 
 # Opens window and ask to select input folder
-folder_path = filedialog.askdirectory()
-
+#folder_path = filedialog.askdirectory()
+folder_path = project_path / 'data'/ 'raw_data' / 'A02_original_aslmnist'/ 'Test_data'
 
 # Detect foler path and create new folder for processed images
 parent_path = os.path.dirname(folder_path)
-
 
 folder_name = Path(folder_path).name
 
@@ -60,6 +59,8 @@ new_folder_path = project_path/ "data" / "preprocessed"/ folder_name
 new_folder_path.mkdir(parents=True, exist_ok=True)
 
 pixel_size = 28
+
+print(os.listdir(folder_path))
 
 # Track Progress
 with Progress() as p:
