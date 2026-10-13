@@ -116,14 +116,16 @@ def train_model(X_train, y_train, X_val, y_val):
 
     es = EarlyStopping(patience=5, verbose=1, restore_best_weights=True)
 
-    model = init_model(X_train).fit(X_train, y_train,
-                           batch_size=64,
-                           epochs=200,
-                           callbacks=[es],
-                           validation_data=(X_val, y_val),
-                           verbose=1)
+    model = init_model(X_train)
 
-    return model
+    history = model.fit(X_train, y_train,
+              batch_size=64,
+              epochs=200,
+              callbacks=[es],
+              validation_data=(X_val, y_val),
+              verbose=1)
+
+    return model, history
 
 
 def evaluate_model(X_test, y_test, model):
