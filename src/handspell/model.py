@@ -5,9 +5,11 @@ import keras
 
 from tensorflow.keras import Sequential, Input, layers
 from tensorflow.keras import optimizers
-from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
 from sklearn.model_selection import train_test_split
+
+from handspell.data_preprocessing import image_preprocessing
 
 
 def dataset_load(train_path: str, test_path: str):
@@ -78,12 +80,12 @@ def init_model(X_train):
     model.add(layers.MaxPool2D(pool_size=(2, 2)))
 
     ### Second Convolution & MaxPooling
-    model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+    model.add(layers.Conv2D(64, (3, 3), padding='same' ,activation='relu'))
     model.add(layers.BatchNormalization())
     model.add(layers.MaxPool2D(pool_size=(2, 2)))
 
     ### Third Convolution & MaxPooling
-    model.add(layers.Conv2D(32, (3, 3), activation='relu'))
+    model.add(layers.Conv2D(64, (3, 3), padding='same', activation='relu'))
     model.add(layers.BatchNormalization())
     model.add(layers.MaxPool2D(pool_size=(2, 2)))
 
@@ -91,11 +93,10 @@ def init_model(X_train):
     model.add(layers.Flatten())
 
     ### One Fully Connected layer - "Fully Connected" is equivalent to saying "Dense"
-    model.add(layers.Dense(64, activation='relu'))
-    model.add(layers.BatchNormalization())
+    model.add(layers.Dense(256, activation='relu'))
 
-    ### Dropout layer - rate = 0.3, fraction of units to drop
-    model.add(layers.Dropout(0.3))
+    ### Dropout layer - rate = 0.4, fraction of units to drop
+    model.add(layers.Dropout(0.4))
 
     ### Last layer - Classification Layer with 25 outputs corresponding to 25 digits
     model.add(layers.Dense(25, activation='softmax'))
@@ -110,16 +111,22 @@ def init_model(X_train):
 
 
 def train_model(X_train, y_train, X_val, y_val):
-    """Function to set Early Stopping and train model"""
+    """Function to set Early Stopping/ReduceLR and train model"""
 
     es = EarlyStopping(patience=5, verbose=1, restore_best_weights=True)
+
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss',
+                                  factor=0.4,
+                                  patience=3,
+                                  verbose=1,
+                                  min_lr=0.00001)
 
     model = init_model(X_train)
 
     history = model.fit(X_train, y_train,
               batch_size=64,
-              epochs=200,
-              callbacks=[es],
+              epochs=50,
+              callbacks=[reduce_lr],
               validation_data=(X_val, y_val),
               verbose=1)
 
@@ -145,3 +152,30 @@ def load_model(path: str):
     loaded_model = keras.models.load_model(path)
 
     return loaded_model
+
+
+def predict_letter(scores: np.ndarray) -> dict:
+
+    predicted_idx = int(np.argmax(scores))
+
+    return {
+        "letter": chr(predicted_idx + ord("A")),
+        "confidence": float(scores[predicted_idx])
+    }
+
+
+def predict(image_path: str, model_path: str):
+    """"""
+    preprocessed_img = image_preprocessing(image_path, 28)
+
+    normalized_img = preprocessed_img.astype(np.float32) / 255.0
+
+    reshape_img = normalized_img.reshape(1, 28, 28, 1)
+
+    model = load_model(model_path)
+
+    predictions = model.predict(reshape_img)
+
+    predicted_letter = predict_letter(predictions[0])
+
+    return predicted_letter, predictions
