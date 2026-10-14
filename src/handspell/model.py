@@ -168,9 +168,9 @@ def predict(image_path: str, model_path: str):
     """"""
     preprocessed_img = image_preprocessing(image_path, 28)
 
-    normalized_img = preprocessed_img.astype(np.float32) / 255.0
+    # normalized_img = preprocessed_img.astype(np.float32) / 255.0
 
-    reshape_img = normalized_img.reshape(1, 28, 28, 1)
+    reshape_img = preprocessed_img.reshape(1, 28, 28, 1)
 
     model = load_model(model_path)
 
