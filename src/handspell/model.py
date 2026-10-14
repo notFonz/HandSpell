@@ -9,6 +9,8 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
 from sklearn.model_selection import train_test_split
 
+from handspell.data_preprocessing import image_preprocessing
+
 
 def dataset_load(train_path: str, test_path: str):
     """Function to load both datasets"""
@@ -150,3 +152,30 @@ def load_model(path: str):
     loaded_model = keras.models.load_model(path)
 
     return loaded_model
+
+
+def predict_letter(scores: np.ndarray) -> dict:
+
+    predicted_idx = int(np.argmax(scores))
+
+    return {
+        "letter": chr(predicted_idx + ord("A")),
+        "confidence": float(scores[predicted_idx])
+    }
+
+
+def predict(image_path: str, model_path: str):
+    """"""
+    preprocessed_img = image_preprocessing(image_path, 28)
+
+    normalized_img = preprocessed_img.astype(np.float32) / 255.0
+
+    reshape_img = normalized_img.reshape(1, 28, 28, 1)
+
+    model = load_model(model_path)
+
+    predictions = model.predict(reshape_img)
+
+    predicted_letter = predict_letter(predictions[0])
+
+    return predicted_letter, predictions
