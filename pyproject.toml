@@ -17,9 +17,14 @@ dependencies = [
     "matplotlib>=3.11.2",
     "numpy>=2.5.4",
     "pandas>=3.0.6",
+    "python-multipart>=0.0.32",
     "scikit-learn>=1.9.1",
     "seaborn>=0.13.2",
     "tensorflow>=2.21.0",
+    "uvicorn>=0.54.0",
+    "fastapi>=0.143.0",
+    "opencv-python>=5.0.0.93",
+    "opencv-python-headless>=5.0.0.93",
 ]
 
 [project.scripts]
