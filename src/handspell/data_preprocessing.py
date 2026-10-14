@@ -106,7 +106,7 @@ def image_preprocessing(image_path, output_size=64):
 
 
 
-""" def folder_processing():
+def folder_processing():
 
     root = tk.Tk()
     root.withdraw()
@@ -142,4 +142,4 @@ def image_preprocessing(image_path, output_size=64):
             cv2.imwrite(os.path.join(new_folder_path, images), grey_image_uint8)
 
         except:
-            print('skipped image') """
+            print('skipped image')
