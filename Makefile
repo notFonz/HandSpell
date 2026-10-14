@@ -23,8 +23,10 @@ test_structure:
 #          API         #
 #======================#
 
+include .env
+
 run_api:
-	uvicorn api.main:app --reload --port 8000
+	uvicorn api.main:app --reload --port $(DOCKER_LOCAL_PORT)
 
 
 #======================#
@@ -49,13 +51,13 @@ docker_build_local:
 
 docker_run_local:
 	docker run \
-		-e PORT=8000 -p $(DOCKER_LOCAL_PORT):8000 \
+		-e PORT=$(DOCKER_LOCAL_PORT) -p $(DOCKER_LOCAL_PORT):$(DOCKER_LOCAL_PORT) \
 		--env-file .env \
 		$(DOCKER_IMAGE_NAME):local
 
 docker_run_local_interactively:
 	docker run -it \
-		-e PORT=8000 -p $(DOCKER_LOCAL_PORT):8000 \
+		-e PORT=$(DOCKER_LOCAL_PORT) -p $(DOCKER_LOCAL_PORT):$(DOCKER_LOCAL_PORT) \
 		--env-file .env \
 		$(DOCKER_IMAGE_NAME):local \
 		bash
@@ -82,19 +84,21 @@ docker_build_alternative:
 docker_run:
 	docker run \
 		--platform linux/amd64 \
-		-e PORT=8000 -p $(DOCKER_LOCAL_PORT):8000 \
+		-e PORT=$(DOCKER_LOCAL_PORT) -p $(DOCKER_LOCAL_PORT):$(DOCKER_LOCAL_PORT) \
 		--env-file .env \
 		$(DOCKER_IMAGE_PATH):prod
 
 docker_run_interactively:
 	docker run -it \
 		--platform linux/amd64 \
-		-e PORT=8000 -p $(DOCKER_LOCAL_PORT):8000 \
+		-e PORT=$(DOCKER_LOCAL_PORT) -p $(DOCKER_LOCAL_PORT):$(DOCKER_LOCAL_PORT) \
 		--env-file .env \
 		$(DOCKER_IMAGE_PATH):prod \
 		bash
 
 # Push and deploy to cloud
+gcloud_login:
+	gcloud auth login
 
 docker_allow:
 	gcloud auth configure-docker $(GCP_REGION)-docker.pkg.dev
@@ -112,5 +116,4 @@ docker_deploy:
 	gcloud run deploy \
 		--image $(DOCKER_IMAGE_PATH):prod \
 		--memory $(GAR_MEMORY) \
-		--region $(GCP_REGION) \
-		--env-vars-file .env.yaml
+		--region $(GCP_REGION)
