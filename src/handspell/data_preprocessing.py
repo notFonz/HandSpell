@@ -60,8 +60,6 @@ def image_preprocessing(image_path, output_size=64, model = None):
             if (image_path.endswith(".png") or image_path.endswith(".jpg")\
                 or image_path.endswith(".jpeg")):
 
-                #image_path = os.path.join(folder_path, images)
-
                 # Prediction of hand segmentaion
                 hand_prediction = model.predict(image_path, save=True, save_crop = True)
 
@@ -104,7 +102,6 @@ def image_preprocessing(image_path, output_size=64, model = None):
                     time.sleep(0.05)
 
     return resized_img
-
 
 
 def folder_processing(output_size = 64):
