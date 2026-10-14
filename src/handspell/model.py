@@ -163,7 +163,7 @@ def predict_letter(scores: np.ndarray) -> dict:
         "confidence": float(scores[predicted_idx])
     }
 
-def preprocess_from_image_path(image_path: str) -> np.array:
+def preprocess_from_image_path(image_path: str, model=None) -> np.array:
     """Preprocess an image from a filepath.
     Accepts jpg, png or jpeg files of any size.
 
@@ -175,8 +175,9 @@ def preprocess_from_image_path(image_path: str) -> np.array:
     Returns reshaped image array (28, 28)
     """
 
-
-    preprocessed_img = image_preprocessing(image_path, 28)
+    preprocessed_img = image_preprocessing(image_path=image_path,
+                                           output_size=28,
+                                           model=model)
 
     # normalized_img = preprocessed_img.astype(np.float32) / 255.0
 
@@ -185,7 +186,7 @@ def preprocess_from_image_path(image_path: str) -> np.array:
     return reshape_img
 
 
-def predict(image: np.array, model: Sequential) -> (dict, np.array):
+def predict(image: np.array, model: Sequential):
     """Predicts a ASL letter (not J or Z) from an image that should be
     28x28 greyscale array with values between 0 and 1.
 
@@ -203,7 +204,7 @@ def predict(image: np.array, model: Sequential) -> (dict, np.array):
 
 
 def preprocess_and_predict(image_path: str, model_path: str
-                           ) -> (dict, np.array):
+                           ):
     """Predicts a ASL letter (not J or Z) from an image an image from a filepath.
     Accepts jpg, png or jpeg files of any size.
     Expects path to a 'keras' model.
@@ -219,3 +220,20 @@ def preprocess_and_predict(image_path: str, model_path: str
     predicted_letter, predictions = predict(reshaped_img, model)
 
     return predicted_letter, predictions
+
+
+def preprocess_and_predict_api(image_path: str, hand_detection_model, letter_classification_model: Sequential
+                           ):
+    """Predicts a ASL letter (not J or Z) from an image an image from a filepath.
+    Accepts jpg, png or jpeg files of any size.
+    Expects 'keras' model.
+
+    Returns:
+     - Dictionary with the most probable letter and its probability
+     - Array with the probabilities for each of the letters
+    """
+    reshaped_img = preprocess_from_image_path(image_path=image_path, model=hand_detection_model)
+
+    predicted_letter, _ = predict(reshaped_img, letter_classification_model)
+
+    return predicted_letter
