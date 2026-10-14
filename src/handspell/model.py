@@ -163,19 +163,59 @@ def predict_letter(scores: np.ndarray) -> dict:
         "confidence": float(scores[predicted_idx])
     }
 
+def preprocess_from_image_path(image_path: str) -> np.array:
+    """Preprocess an image from a filepath.
+    Accepts jpg, png or jpeg files of any size.
 
-def predict(image_path: str, model_path: str):
-    """"""
+    - Detects hand with a YOLO model.
+    - Crops square around detected hand
+    - Resizes to 28x28 pixel image
+    - Greyscales and normalizes (values of pixels 0-1)
+
+    Returns reshaped image array (28, 28)
+    """
+
+
     preprocessed_img = image_preprocessing(image_path, 28)
 
-    normalized_img = preprocessed_img.astype(np.float32) / 255.0
+    # normalized_img = preprocessed_img.astype(np.float32) / 255.0
 
-    reshape_img = normalized_img.reshape(1, 28, 28, 1)
+    reshape_img = preprocessed_img.reshape(1, 28, 28, 1)
+
+    return reshape_img
+
+
+def predict(image: np.array, model: Sequential) -> (dict, np.array):
+    """Predicts a ASL letter (not J or Z) from an image that should be
+    28x28 greyscale array with values between 0 and 1.
+
+    Returns:
+     - Dictionary with the most probable letter and its probability
+     - Array with the probabilities for each of the letters
+    """
+
+
+    predictions = model.predict(image)
+
+    predicted_letter = predict_letter(predictions[0])
+
+    return predicted_letter, predictions
+
+
+def preprocess_and_predict(image_path: str, model_path: str
+                           ) -> (dict, np.array):
+    """Predicts a ASL letter (not J or Z) from an image an image from a filepath.
+    Accepts jpg, png or jpeg files of any size.
+    Expects path to a 'keras' model.
+
+    Returns:
+     - Dictionary with the most probable letter and its probability
+     - Array with the probabilities for each of the letters
+    """
+    reshaped_img = preprocess_from_image_path(image_path)
 
     model = load_model(model_path)
 
-    predictions = model.predict(reshape_img)
-
-    predicted_letter = predict_letter(predictions[0])
+    predicted_letter, predictions = predict(reshaped_img, model)
 
     return predicted_letter, predictions
