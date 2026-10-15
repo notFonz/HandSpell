@@ -17,7 +17,6 @@ from pathlib import Path
 from rich.progress import Progress
 from tkinter import filedialog
 import tkinter as tk
-import time
 import cv2
 import numpy as np
 import subprocess
@@ -30,8 +29,6 @@ MODEL_PATH = os.environ["HAND_DETECTION_MODEL_PATH"]
 
 
 def load_model(model_path=None):
-
-    model_path = project_path / "models" / "yolo26m-seg-hand.pt"
 
     #Check if model already exists
     if model_path is None:
