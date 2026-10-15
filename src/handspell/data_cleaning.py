@@ -33,7 +33,7 @@ def get_labels_images(path: str):
                 # Note: need path of label on image
                 else:
                     labels.append(label.upper()),
-                    images.append(label + '/' + image)
+                    images.append(path + '/' + label + '/' + image)
 
     return pd.DataFrame({'labels':labels,'images':images})
 
