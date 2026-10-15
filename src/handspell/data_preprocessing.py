@@ -15,6 +15,8 @@ from os import listdir
 from PIL import Image
 from pathlib import Path
 from rich.progress import Progress
+from tkinter import filedialog
+import tkinter as tk
 import time
 import cv2
 import numpy as np
@@ -23,10 +25,13 @@ import os
 import pandas as pd
 
 
+
 MODEL_PATH = os.environ["HAND_DETECTION_MODEL_PATH"]
 
 
 def load_model(model_path=None):
+
+    model_path = project_path / "models" / "yolo26m-seg-hand.pt"
 
     #Check if model already exists
     if model_path is None:
@@ -34,7 +39,9 @@ def load_model(model_path=None):
 
     if os.path.exists(model_path):
         print('Model already downloaded')
+
     else:
+
         # Download model for hand detection
         subprocess.run([
         "curl",
@@ -43,6 +50,8 @@ def load_model(model_path=None):
         model_path,
         "https://huggingface.co/NightingaleCen/YOLO26m-seg-hand/resolve/main/yolo26m-seg-hand.pt"
         ], check=True)
+
+
 
     model = YOLO(model_path)
 
@@ -55,53 +64,43 @@ def image_preprocessing(image_path, output_size=64, model=None):
         model = load_model()
 
 
-    # Track Progress
-    with Progress() as p:
+    if (image_path.endswith(".png") or image_path.endswith(".jpg")\
+        or image_path.endswith(".jpeg")):
 
-        t = p.add_task("Processing...", total=100)
+        # Prediction of hand segmentaion
+        hand_prediction = model.predict(image_path, save=True, save_crop = True)
 
-        if (image_path.endswith(".png") or image_path.endswith(".jpg")\
-            or image_path.endswith(".jpeg")):
+        # Output if hand could not detected
+        if len(hand_prediction[0].boxes) == 0:
+            print(f"No hand detected in {image_path}; skipping image.")
+            return
+        x1, y1, x2, y2 = [float(coordinate) for coordinate in hand_prediction[0].boxes.xyxy[0]]
 
-            # Prediction of hand segmentaion
-            hand_prediction = model.predict(image_path, save=True, save_crop = True)
+        #Defining attributes of the predicted hand rectangle
 
-            # Output if hand could not detected
-            if len(hand_prediction[0].boxes) == 0:
-                print(f"No hand detected in {image_path}; skipping image.")
-                return
-            x1, y1, x2, y2 = [float(coordinate) for coordinate in hand_prediction[0].boxes.xyxy[0]]
+        height = y2-y1
+        width = x2-x1
+        center_xy = np.array([(x1+x2)/2. , (y1+y2)/2.])
 
-            #Defining attributes of the predicted hand rectangle
+        # Square transformation
+        diag = (height**2 + width**2)**0.5
+        orig_square_xy = center_xy - diag/2
 
-            height = y2-y1
-            width = x2-x1
-            center_xy = np.array([(x1+x2)/2. , (y1+y2)/2.])
+        # Defining new X and Y Coordinates
+        x_left = orig_square_xy[0]
+        y_up = orig_square_xy[1]
+        x_right = orig_square_xy[0] + diag
+        y_low = orig_square_xy[1] + diag
 
-            # Square transformation
-            diag = (height**2 + width**2)**0.5
-            orig_square_xy = center_xy - diag/2
+        # Crop images
+        img = Image.open(image_path, mode = 'r')
+        cropped_image = img.crop([x_left, y_up, x_right, y_low])
 
-            # Defining new X and Y Coordinates
-            x_left = orig_square_xy[0]
-            y_up = orig_square_xy[1]
-            x_right = orig_square_xy[0] + diag
-            y_low = orig_square_xy[1] + diag
+        # Set image color to grey
+        grey_image = rgb2gray(cropped_image)
 
-            # Crop images
-            img = Image.open(image_path, mode = 'r')
-            cropped_image = img.crop([x_left, y_up, x_right, y_low])
-
-            # Set image color to grey
-            grey_image = rgb2gray(cropped_image)
-
-            #Resize Image
-            resized_img = cv2.resize(grey_image,(output_size, output_size), interpolation=cv2.INTER_LANCZOS4)
-
-            #Track progress
-            while not p.finished:
-                p.update(t, advance=1)
-                time.sleep(0.05)
+        #Resize Image
+        resized_img = cv2.resize(grey_image,(output_size, output_size), interpolation=cv2.INTER_LANCZOS4)
 
     return resized_img
 
@@ -121,6 +120,8 @@ def folder_processing(output_size = 64):
 
     print(os.listdir(folder_path))
     folder_path = Path(folder_path)
+
+    df = pd.DataFrame()
 
     #Iterate through all the subfolders
     for subfolder in folder_path.iterdir():
@@ -157,28 +158,18 @@ def folder_processing(output_size = 64):
             grey_image_uint8 = (resized_img *255).astype(np.uint8)
             cv2.imwrite(os.path.join(new_folder_path, images), grey_image_uint8)
 
-            #pixels = list(img.get data())
+            # Extract letter from image name
+            label = os.path.splitext(images)
+            label = list(label[0])
 
+            result=[]
 
+            pixel_values = grey_image_uint8.flatten()
 
+            result = {f'pixel{i+1}': pixel for i, pixel in enumerate(pixel_values)}
 
+            new_row = pd.DataFrame([dict(result)], index=[label[0]])
+            df = pd.concat([df, new_row])
 
-
-
-def convert_to_csv():
-
-    images = Path("/home/maxgr/code/notFonz/HandSpell/data/preprocessed/user_3/A2.jpg")
-
-    img = Image.open(images)
-
-    pixels = list(img.getdata())
-
-    result=[]
-    counter=0
-    for pixel in pixels:
-        counter+=1
-        result.append(['pixel'+str(counter), pixel])
-    df = pd.DataFrame([dict(result)])
-    print(df)
-
-#
+    print(f'Saved csv file in {project_path/ "data" / "preprocessed"}')
+    df.to_csv(project_path/ "data" / "preprocessed" / 'processed_training_data.csv')
