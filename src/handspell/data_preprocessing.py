@@ -20,11 +20,15 @@ import cv2
 import numpy as np
 import subprocess
 import os
+import pandas as pd
+
 
 MODEL_PATH = os.environ["HAND_DETECTION_MODEL_PATH"]
 
+
 def load_model(model_path=None):
-    # Check if model already exists
+
+    #Check if model already exists
     if model_path is None:
         model_path = MODEL_PATH
 
@@ -50,55 +54,54 @@ def image_preprocessing(image_path, output_size=64, model=None):
     if model is None:
         model = load_model()
 
-    else:
+
     # Track Progress
-        with Progress() as p:
+    with Progress() as p:
 
-            t = p.add_task("Processing...", total=100)
+        t = p.add_task("Processing...", total=100)
 
-            if (image_path.endswith(".png") or image_path.endswith(".jpg")\
-                or image_path.endswith(".jpeg")):
+        if (image_path.endswith(".png") or image_path.endswith(".jpg")\
+            or image_path.endswith(".jpeg")):
 
-                # Prediction of hand segmentaion
-                hand_prediction = model.predict(image_path, save=True, save_crop = True)
+            # Prediction of hand segmentaion
+            hand_prediction = model.predict(image_path, save=True, save_crop = True)
 
-                # Output if hand could not detected
-                if len(hand_prediction[0].boxes) == 0:
-                    print(f"No hand detected in {image_path}; skipping image.")
+            # Output if hand could not detected
+            if len(hand_prediction[0].boxes) == 0:
+                print(f"No hand detected in {image_path}; skipping image.")
+                return
+            x1, y1, x2, y2 = [float(coordinate) for coordinate in hand_prediction[0].boxes.xyxy[0]]
 
-                    return
-                x1, y1, x2, y2 = [float(coordinate) for coordinate in hand_prediction[0].boxes.xyxy[0]]
+            #Defining attributes of the predicted hand rectangle
 
-                #Defining attributes of the predicted hand rectangle
-                origin_xy = hand_prediction[0].boxes.xyxy[0][:2]
-                height = y2-y1
-                width = x2-x1
-                center_xy = np.array([(x1+x2)/2. , (y1+y2)/2.])
+            height = y2-y1
+            width = x2-x1
+            center_xy = np.array([(x1+x2)/2. , (y1+y2)/2.])
 
-                # Square transformation
-                diag = (height**2 + width**2)**0.5
-                orig_square_xy = center_xy - diag/2
+            # Square transformation
+            diag = (height**2 + width**2)**0.5
+            orig_square_xy = center_xy - diag/2
 
-                # Defining new X and Y Coordinates
-                x_left = orig_square_xy[0]
-                y_up = orig_square_xy[1]
-                x_right = orig_square_xy[0] + diag
-                y_low = orig_square_xy[1] + diag
+            # Defining new X and Y Coordinates
+            x_left = orig_square_xy[0]
+            y_up = orig_square_xy[1]
+            x_right = orig_square_xy[0] + diag
+            y_low = orig_square_xy[1] + diag
 
-                # Crop images
-                img = Image.open(image_path, mode = 'r')
-                cropped_image = img.crop([x_left, y_up, x_right, y_low])
+            # Crop images
+            img = Image.open(image_path, mode = 'r')
+            cropped_image = img.crop([x_left, y_up, x_right, y_low])
 
-                # Set image color to grey
-                grey_image = rgb2gray(cropped_image)
+            # Set image color to grey
+            grey_image = rgb2gray(cropped_image)
 
-                #Resize Image
-                resized_img = cv2.resize(grey_image,(output_size, output_size), interpolation=cv2.INTER_LANCZOS4)
+            #Resize Image
+            resized_img = cv2.resize(grey_image,(output_size, output_size), interpolation=cv2.INTER_LANCZOS4)
 
-                #Track progress
-                while not p.finished:
-                    p.update(t, advance=1)
-                    time.sleep(0.05)
+            #Track progress
+            while not p.finished:
+                p.update(t, advance=1)
+                time.sleep(0.05)
 
     return resized_img
 
@@ -153,3 +156,29 @@ def folder_processing(output_size = 64):
             #Convert and write image file
             grey_image_uint8 = (resized_img *255).astype(np.uint8)
             cv2.imwrite(os.path.join(new_folder_path, images), grey_image_uint8)
+
+            #pixels = list(img.get data())
+
+
+
+
+
+
+
+def convert_to_csv():
+
+    images = Path("/home/maxgr/code/notFonz/HandSpell/data/preprocessed/user_3/A2.jpg")
+
+    img = Image.open(images)
+
+    pixels = list(img.getdata())
+
+    result=[]
+    counter=0
+    for pixel in pixels:
+        counter+=1
+        result.append(['pixel'+str(counter), pixel])
+    df = pd.DataFrame([dict(result)])
+    print(df)
+
+#
