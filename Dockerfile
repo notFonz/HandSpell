@@ -10,10 +10,7 @@ COPY requirements-api.txt .
 RUN pip install --no-cache-dir -r requirements-api.txt
 
 COPY api/ ./api/
-
-COPY models/kazim_handspell_mnist_custom_cnn.keras ./models/kazim_handspell_mnist_custom_cnn.keras
-
-
-EXPOSE 8000
+COPY models/ ./models/
+COPY src/ ./src/
 
 CMD ["sh", "-c", "exec python -m uvicorn api.main:app --host 0.0.0.0 --port \"$PORT\""]

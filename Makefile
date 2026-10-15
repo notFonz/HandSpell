@@ -24,6 +24,7 @@ test_structure:
 #======================#
 
 include .env
+export
 
 run_api:
 	uvicorn api.main:app --reload --port $(DOCKER_LOCAL_PORT)
@@ -115,5 +116,6 @@ docker_push:
 docker_deploy:
 	gcloud run deploy \
 		--image $(DOCKER_IMAGE_PATH):prod \
-		--memory $(GAR_MEMORY) \
-		--region $(GCP_REGION)
+		--memory $(GCP_MEMORY) \
+		--region $(GCP_REGION) \
+		--env-vars-file .env.sample
