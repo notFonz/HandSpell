@@ -23,8 +23,6 @@ import subprocess
 import os
 import pandas as pd
 
-
-
 MODEL_PATH = os.environ["HAND_DETECTION_MODEL_PATH"]
 
 
@@ -33,6 +31,7 @@ def load_model(model_path=None):
     #Check if model already exists
     if model_path is None:
         model_path = MODEL_PATH
+
 
     if os.path.exists(model_path):
         print('Model already downloaded')
@@ -48,8 +47,6 @@ def load_model(model_path=None):
         "https://huggingface.co/NightingaleCen/YOLO26m-seg-hand/resolve/main/yolo26m-seg-hand.pt"
         ], check=True)
 
-
-
     model = YOLO(model_path)
 
     return model
@@ -60,12 +57,12 @@ def image_preprocessing(image_path, output_size=64, model=None):
     if model is None:
         model = load_model()
 
-
     if (image_path.endswith(".png") or image_path.endswith(".jpg")\
         or image_path.endswith(".jpeg")):
 
         # Prediction of hand segmentaion
         hand_prediction = model.predict(image_path, save=True, save_crop = True)
+
 
         # Output if hand could not detected
         if len(hand_prediction[0].boxes) == 0:
@@ -101,22 +98,26 @@ def image_preprocessing(image_path, output_size=64, model=None):
 
     return resized_img
 
+def preprocessing_dataset_interactive(output_size = 64):
 
-def folder_processing(output_size = 64):
-
-    # Load model once for the whole iteration
-    model = load_model()
+    project_path = Path(__file__).resolve().parents[2]
 
     root = tk.Tk()
     root.withdraw()
-
-    project_path = Path(__file__).resolve().parents[2]
 
     #Opens window and ask to select input folder
     folder_path = filedialog.askdirectory()
 
     print(os.listdir(folder_path))
     folder_path = Path(folder_path)
+
+    return preprocessing_dataset(folder_path, project_path, output_size)
+
+
+def preprocessing_dataset(folder_path, project_path, output_size = 64):
+
+    # Load model once for the whole iteration
+    model = load_model()
 
     df = pd.DataFrame()
 
