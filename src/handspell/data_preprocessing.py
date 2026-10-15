@@ -24,13 +24,15 @@ import numpy as np
 import subprocess
 
 
-def load_model():
-    project_path = Path(__file__).resolve().parents[2]
+MODEL_PATH = os.environ["HAND_DETECTION_MODEL_PATH"]
 
+
+def load_model(model_path=None):
     # Check if model already exists
-    model_path = project_path / "models" / "yolo26m-seg-hand.pt"
+    if model_path is None:
+        model_path = MODEL_PATH
 
-    if model_path.exists():
+    if os.path.exists(model_path):
         print('Model already downloaded')
     else:
         # Download model for hand detection
@@ -47,10 +49,11 @@ def load_model():
     return model
 
 
-def image_preprocessing(image_path, output_size=64, model = None):
+def image_preprocessing(image_path, output_size=64, model=None):
 
     if model is None:
         model = load_model()
+
     else:
     # Track Progress
         with Progress() as p:
