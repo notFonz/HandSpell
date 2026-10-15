@@ -2,21 +2,17 @@
 
 Uses a YOLO-based model to detect hands, extract square image crops,
 convert them to grayscale, and normalize them to a resolution of
-28 × 28 pixels.
+square of chosen size pixels.
 
 Processed images are saved in a 'preprocessed_images' subdirectory
-within the selected input directory.
+within the selected preprocessing directory.
 """
 
-from matplotlib.patches import Rectangle
 from skimage.color import rgb2gray
 from ultralytics import YOLO
 from os import listdir
 from PIL import Image
 from pathlib import Path
-from rich.progress import Progress
-from tkinter import filedialog
-import tkinter as tk
 import cv2
 import numpy as np
 import subprocess
@@ -24,7 +20,6 @@ import os
 import pandas as pd
 
 MODEL_PATH = os.environ["HAND_DETECTION_MODEL_PATH"]
-
 
 def load_model(model_path=None):
 
@@ -109,17 +104,24 @@ def preprocessing_dataset_interactive(output_size = 64):
     folder_path = filedialog.askdirectory()
 
     print(os.listdir(folder_path))
-    folder_path = Path(folder_path)
 
     return preprocessing_dataset(folder_path, project_path, output_size)
 
 
-def preprocessing_dataset(folder_path, project_path, output_size = 64):
+def preprocessing_dataset(folder_path:str,
+                          project_path:str,
+                          model=None,
+                          output_size: int=64):
 
-    # Load model once for the whole iteration
-    model = load_model()
+    if model is None:
+        # Load model once for the whole iteration
+        model = load_model()
 
-    df = pd.DataFrame()
+    project_path = Path(project_path)
+
+    folder_path = Path(folder_path)
+
+    rows = []
 
     #Iterate through all the subfolders
     for subfolder in folder_path.iterdir():
@@ -132,7 +134,7 @@ def preprocessing_dataset(folder_path, project_path, output_size = 64):
         folder_name = Path(subfolder).name
 
         #Define the folder path for the respective processed-folder and create that folder
-        new_folder_path = project_path/ "data" / "preprocessed"/ folder_name
+        new_folder_path = project_path / "data" / "preprocessed" / folder_name
         new_folder_path.mkdir(parents=True, exist_ok=True)
 
         #Iterate through all files inside  the subfolder
@@ -166,8 +168,11 @@ def preprocessing_dataset(folder_path, project_path, output_size = 64):
 
             result = {f'pixel{i+1}': pixel for i, pixel in enumerate(pixel_values)}
 
-            new_row = pd.DataFrame([dict(result)], index=[label[0]])
-            df = pd.concat([df, new_row])
+            new_row = dict(label=label[0], **result)
+            rows += [new_row]
+        break
 
-    print(f'Saved csv file in {project_path/ "data" / "preprocessed"}')
+    df = pd.DataFrame(rows).set_index("label")
     df.to_csv(project_path/ "data" / "preprocessed" / 'processed_training_data.csv')
+    print(f'Saved csv file in {project_path/ "data" / "preprocessed"}')
+    return df
