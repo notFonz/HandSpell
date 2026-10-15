@@ -10,22 +10,18 @@ within the selected input directory.
 
 from matplotlib.patches import Rectangle
 from skimage.color import rgb2gray
-from tkinter import filedialog
 from ultralytics import YOLO
 from os import listdir
 from PIL import Image
 from pathlib import Path
 from rich.progress import Progress
 import time
-import os
 import cv2
-import tkinter as tk
 import numpy as np
 import subprocess
-
+import os
 
 MODEL_PATH = os.environ["HAND_DETECTION_MODEL_PATH"]
-
 
 def load_model(model_path=None):
     # Check if model already exists
