@@ -37,8 +37,6 @@ run_api:
 gcloud-set-project:
 	gcloud config set project $(GCP_PROJECT)
 
-
-
 #======================#
 #         Docker       #
 #======================#
@@ -89,20 +87,33 @@ docker_run:
 	docker run \
 		--platform linux/amd64 \
 		-e PORT=$(DOCKER_LOCAL_PORT) -p $(DOCKER_LOCAL_PORT):$(DOCKER_LOCAL_PORT) \
-		--env-file .env \
 		$(DOCKER_IMAGE_PATH):prod
 
 docker_run_interactively:
 	docker run -it \
 		--platform linux/amd64 \
 		-e PORT=$(DOCKER_LOCAL_PORT) -p $(DOCKER_LOCAL_PORT):$(DOCKER_LOCAL_PORT) \
-		--env-file .env \
 		$(DOCKER_IMAGE_PATH):prod \
 		bash
 
 # Push and deploy to cloud
+
+# Personal authentication
 gcloud_login:
 	gcloud auth login
+
+# Service account authentication;
+# GOOGLE_APPLICATION_CREDENTIALS (the path to a json file) need to be defined
+# in ~/.zshrc or equivalent
+# And the following needs to have been done previously:
+# gcloud iam service-accounts keys create \
+  > $GOOGLE_APPLICATION_CREDENTIALS \
+  --iam-account=name@your-project-id.iam.gserviceaccount.com
+# where the name@your-project-id.iam.gserviceaccount.com can be obtained using
+# > gcloud iam service-accounts list
+gcloud_activate_service_account:
+	gcloud auth activate-service-account \
+	  --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 
 docker_allow:
 	gcloud auth configure-docker $(GCP_REGION)-docker.pkg.dev
@@ -120,8 +131,7 @@ docker_deploy:
 	gcloud run deploy \
 		--image $(DOCKER_IMAGE_PATH):prod \
 		--memory $(GCP_MEMORY) \
-		--region $(GCP_REGION) \
-		--env-vars-file .env.yaml
+		--region $(GCP_REGION)
 
 cloud_logs:
 	gcloud run services logs read handspell-api \

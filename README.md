@@ -31,5 +31,20 @@ To clean docker space, run
 make docker_clean
 ```
 
+### Cloud
+
+```bash
+make docker_show_image_path
+make docker_build
+
+make gcloud_login
+## In case you don't have free trial credits anymore
+# make gcloud_activate_service_account
+make docker_allow
+make docker_create_repo
+make docker_push
+make docker_deploy
+```
+
 # Usage
 Document main functionalities of the package here
