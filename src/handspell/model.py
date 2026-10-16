@@ -198,7 +198,6 @@ def predict(image: np.array, model: Sequential):
      - Array with the probabilities for each of the letters
     """
 
-
     predictions = model.predict(image)
 
     predicted_letter = predict_letter(predictions[0])
@@ -216,9 +215,11 @@ def preprocess_and_predict(image_path: str, model_path: str
      - Dictionary with the most probable letter and its probability
      - Array with the probabilities for each of the letters
     """
-    reshaped_img = preprocess_from_image_path(image_path)
+    preprocessed_img = image_preprocessing(image_path, output_size=28, save_image=False)
 
     model = load_model(model_path)
+
+    reshaped_img = preprocessed_img.reshape(1, 28, 28, 1)
 
     predicted_letter, predictions = predict(reshaped_img, model)
 
@@ -240,6 +241,7 @@ def preprocess_and_predict_api(image_path: str, hand_detection_model, letter_cla
     predicted_letter, _ = predict(reshaped_img, letter_classification_model)
 
     return predicted_letter
+
 
 if __name__ == "__main__":
     r = preprocess_and_predict(
