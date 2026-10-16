@@ -8,7 +8,7 @@ from tensorflow.keras import optimizers
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from sklearn.model_selection import train_test_split
 
-from handspell.data_preprocessing import image_preprocessing
+from handspell.data_preprocessing import load_model as preprocessing_load_model, image_preprocessing
 
 MODEL_PATH = os.environ["LETTER_CLASSIFICATION_MODEL_PATH"]
 
@@ -236,7 +236,12 @@ def preprocess_and_predict_api(image_path: str, hand_detection_model, letter_cla
      - Dictionary with the most probable letter and its probability
      - Array with the probabilities for each of the letters
     """
-    reshaped_img = preprocess_from_image_path(image_path=image_path, model=hand_detection_model)
+    preprocessed_img = image_preprocessing(image_path=image_path,
+                                           model=hand_detection_model,
+                                           output_size=28,
+                                           save_image=False)
+
+    reshaped_img = preprocessed_img.reshape(1, 28, 28, 1)
 
     predicted_letter, _ = predict(reshaped_img, letter_classification_model)
 
@@ -244,9 +249,22 @@ def preprocess_and_predict_api(image_path: str, hand_detection_model, letter_cla
 
 
 if __name__ == "__main__":
+    print("Preprocess and predict:")
     r = preprocess_and_predict(
         image_path="data/raw_data/A02_original_aslmnist/user_7/A0.jpg",
         model_path=MODEL_PATH
     )
+
+    print(r)
+
+    print("Preprocess and predict API:")
+    yolo_model = preprocessing_load_model(os.environ["HAND_DETECTION_MODEL_PATH"])
+    asl_model = load_model(os.environ["LETTER_CLASSIFICATION_MODEL_PATH"])
+
+    r = preprocess_and_predict_api(
+            image_path="data/raw_data/A02_original_aslmnist/user_7/A0.jpg",
+            hand_detection_model=yolo_model,
+            letter_classification_model=asl_model
+        )
 
     print(r)
