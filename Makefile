@@ -118,4 +118,10 @@ docker_deploy:
 		--image $(DOCKER_IMAGE_PATH):prod \
 		--memory $(GCP_MEMORY) \
 		--region $(GCP_REGION) \
-		--env-vars-file .env.sample
+		--env-vars-file .env.yaml
+
+cloud_logs:
+	gcloud run services logs read handspell-api \
+		--project $(GCP_PROJECT) \
+		--region $(GCP_REGION) \
+		--limit 100
