@@ -2,7 +2,7 @@
 import os
 import numpy as np
 import pandas as pd
-import keras
+from keras.models import load_model as keras_load_model
 from tensorflow.keras import Sequential, Input, layers
 from tensorflow.keras import optimizers
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
@@ -152,7 +152,10 @@ def load_model(path: str=None):
     if path is None:
         path = MODEL_PATH
 
-    loaded_model = keras.models.load_model(path)
+
+    print("ASL: ", path, os.path.exists(path))
+
+    loaded_model = keras_load_model(path)
 
     return loaded_model
 
@@ -238,10 +241,10 @@ def preprocess_and_predict_api(image_path: str, hand_detection_model, letter_cla
     """
     preprocessed_img = image_preprocessing(image_path=image_path,
                                            model=hand_detection_model,
-                                           output_size=28,
+                                           output_size=64,
                                            save_image=False)
 
-    reshaped_img = preprocessed_img.reshape(1, 28, 28, 1)
+    reshaped_img = preprocessed_img.reshape(1, 64, 64, 1)
 
     predicted_letter, _ = predict(reshaped_img, letter_classification_model)
 
@@ -249,17 +252,20 @@ def preprocess_and_predict_api(image_path: str, hand_detection_model, letter_cla
 
 
 if __name__ == "__main__":
-    print("Preprocess and predict:")
-    r = preprocess_and_predict(
-        image_path="data/raw_data/A02_original_aslmnist/user_7/A0.jpg",
-        model_path=MODEL_PATH
-    )
+    # print("Preprocess and predict:")
+    # r = preprocess_and_predict(
+    #     image_path="data/raw_data/A02_original_aslmnist/user_7/A0.jpg",
+    #     model_path=MODEL_PATH
+    # )
 
-    print(r)
+    # print(r)
 
     print("Preprocess and predict API:")
-    yolo_model = preprocessing_load_model(os.environ["HAND_DETECTION_MODEL_PATH"])
-    asl_model = load_model(os.environ["LETTER_CLASSIFICATION_MODEL_PATH"])
+    yolo_model = preprocessing_load_model(
+        model_path=os.environ["HAND_DETECTION_MODEL_PATH"],
+        download_if_needed=False
+    )
+    asl_model = load_model(path=os.environ["LETTER_CLASSIFICATION_MODEL_PATH"])
 
     r = preprocess_and_predict_api(
             image_path="data/raw_data/A02_original_aslmnist/user_7/A0.jpg",

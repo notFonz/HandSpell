@@ -53,15 +53,18 @@ docker_build_local:
 docker_run_local:
 	docker run \
 		-e PORT=$(DOCKER_LOCAL_PORT) -p $(DOCKER_LOCAL_PORT):$(DOCKER_LOCAL_PORT) \
-		--env-file .env \
 		$(DOCKER_IMAGE_NAME):local
 
 docker_run_local_interactively:
 	docker run -it \
 		-e PORT=$(DOCKER_LOCAL_PORT) -p $(DOCKER_LOCAL_PORT):$(DOCKER_LOCAL_PORT) \
-		--env-file .env \
 		$(DOCKER_IMAGE_NAME):local \
 		bash
+
+docker_clean:
+	docker system df
+	docker builder prune -af
+	docker system prune -af
 
 # Cloud images - using architecture compatible with cloud, i.e. linux/amd64
 

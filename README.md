@@ -15,9 +15,20 @@ Document here for users who want to setup the package locally
 
 Set `GCP_PROJECT` in your local `.env` file.
 
+### Local
+
 ```
 make gcloud-set-project
 make docker_build_local
+make docker_run_local
+```
+
+if `ModuleNotFoundError: No module named 'cv2'`, run `uv sync --reinstall-package opencv-python-headless`.
+
+To clean docker space, run
+
+```
+make docker_clean
 ```
 
 # Usage

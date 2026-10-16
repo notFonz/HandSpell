@@ -21,18 +21,18 @@ import pandas as pd
 
 MODEL_PATH = os.environ["HAND_DETECTION_MODEL_PATH"]
 
-def load_model(model_path=None):
+def load_model(model_path=None, download_if_needed=True):
 
     #Check if model already exists
     if model_path is None:
         model_path = MODEL_PATH
 
+    print("Hand detection: ", model_path, os.path.exists(model_path))
 
     if os.path.exists(model_path):
         print('Model already downloaded')
 
-    else:
-
+    elif download_if_needed:
         # Download model for hand detection
         subprocess.run([
         "curl",
@@ -41,13 +41,19 @@ def load_model(model_path=None):
         model_path,
         "https://huggingface.co/NightingaleCen/YOLO26m-seg-hand/resolve/main/yolo26m-seg-hand.pt"
         ], check=True)
+    else:
+        print('Hand detection model is missing: ', model_path)
+        return
 
     model = YOLO(model_path)
 
     return model
 
 
-def image_preprocessing(image_path, output_size=64, model=None, save_image=True):
+def image_preprocessing(image_path,
+                        output_size=64,
+                        model=None,
+                        save_image=True):
 
     if model is None:
         model = load_model()
@@ -91,23 +97,10 @@ def image_preprocessing(image_path, output_size=64, model=None, save_image=True)
         grey_image = rgb2gray(cropped_image)
 
         #Resize Image
-        resized_img = cv2.resize(grey_image,(output_size, output_size), interpolation=cv2.INTER_LANCZOS4)
+        resized_img = cv2.resize(grey_image,(output_size, output_size),
+                                 interpolation=cv2.INTER_LANCZOS4)
 
     return resized_img
-
-def preprocessing_dataset_interactive(output_size = 64):
-
-    project_path = Path(__file__).resolve().parents[2]
-
-    root = tk.Tk()
-    root.withdraw()
-
-    #Opens window and ask to select input folder
-    folder_path = filedialog.askdirectory()
-
-    print(os.listdir(folder_path))
-
-    return preprocessing_dataset(folder_path, project_path, output_size)
 
 
 def preprocessing_dataset(folder_path:str,
