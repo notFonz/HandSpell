@@ -47,7 +47,7 @@ def load_model(model_path=None):
     return model
 
 
-def image_preprocessing(image_path, output_size=64, model=None):
+def image_preprocessing(image_path, output_size=64, model=None, save_image=True):
 
     if model is None:
         model = load_model()
@@ -56,7 +56,9 @@ def image_preprocessing(image_path, output_size=64, model=None):
         or image_path.endswith(".jpeg")):
 
         # Prediction of hand segmentaion
-        hand_prediction = model.predict(image_path, save=True, save_crop = True)
+        hand_prediction = model.predict(image_path,
+                                        save=save_image,
+                                        save_crop=save_image)
 
 
         # Output if hand could not detected

@@ -11,5 +11,14 @@ Document main API endpoints here
 # Setup instructions
 Document here for users who want to setup the package locally
 
+## Dockerization
+
+Set `GCP_PROJECT` in your local `.env` file.
+
+```
+make gcloud-set-project
+make docker_build_local
+```
+
 # Usage
 Document main functionalities of the package here

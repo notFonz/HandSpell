@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, UploadFile
+from fastapi import FastAPI, Request, UploadFile, File
 from starlette.concurrency import run_in_threadpool
 from contextlib import asynccontextmanager
 import tensorflow as tf
@@ -9,7 +9,7 @@ from pathlib import Path
 from PIL import Image
 
 from handspell.data_preprocessing import load_model as load_preprocessing_model
-from handspell.model import preprocess_and_predict_api, predict_image
+from handspell.model import preprocess_and_predict_api
 
 """
     HandSpell API main module
@@ -57,7 +57,7 @@ def root():
 
 
 @app.post("/predict")
-def predict(request: Request, file: UploadFile):
+def predict(request: Request, file: UploadFile = File(...)):
     # Kazim: Use a temporary directory to store the uploaded image before processing it.
     with TemporaryDirectory() as temporary_directory:
         image_path = (

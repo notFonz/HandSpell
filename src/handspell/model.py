@@ -1,16 +1,16 @@
 # Imports for general model training
+import os
 import numpy as np
 import pandas as pd
 import keras
-
 from tensorflow.keras import Sequential, Input, layers
 from tensorflow.keras import optimizers
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
-
 from sklearn.model_selection import train_test_split
 
 from handspell.data_preprocessing import image_preprocessing
 
+MODEL_PATH = os.environ["LETTER_CLASSIFICATION_MODEL_PATH"]
 
 def dataset_load(train_path: str, test_path: str):
     """Function to load both datasets"""
@@ -146,8 +146,11 @@ def save_model(model, model_file_name: str="models/model_hand28x28_letter.keras"
 
     return
 
-def load_model(path: str):
+def load_model(path: str=None):
     """Function to load model"""
+
+    if path is None:
+        path = MODEL_PATH
 
     loaded_model = keras.models.load_model(path)
 
@@ -237,3 +240,11 @@ def preprocess_and_predict_api(image_path: str, hand_detection_model, letter_cla
     predicted_letter, _ = predict(reshaped_img, letter_classification_model)
 
     return predicted_letter
+
+if __name__ == "__main__":
+    r = preprocess_and_predict(
+        image_path="data/raw_data/A02_original_aslmnist/user_7/A0.jpg",
+        model_path=MODEL_PATH
+    )
+
+    print(r)
