@@ -2,7 +2,7 @@
 
 Uses a YOLO-based model to detect hands, extract square image crops,
 convert them to grayscale, and normalize them to a resolution of
-28 × 28 pixels.
+28  28 pixels.
 
 Processed images are saved in a 'preprocessed_images' subdirectory
 within the selected input directory.
@@ -77,7 +77,8 @@ def image_preprocessing(image_path, output_size=64, model=None):
         center_xy = np.array([(x1+x2)/2. , (y1+y2)/2.])
 
         # Square transformation
-        diag = (height**2 + width**2)**0.5
+
+        diag = np.max([height, width])
         orig_square_xy = center_xy - diag/2
 
         # Defining new X and Y Coordinates
@@ -98,7 +99,7 @@ def image_preprocessing(image_path, output_size=64, model=None):
 
     return resized_img
 
-def preprocessing_dataset_interactive(output_size = 64):
+def preprocessing_dataset_interactive(model, output_size = 64):
 
     project_path = Path(__file__).resolve().parents[2]
 
@@ -111,13 +112,16 @@ def preprocessing_dataset_interactive(output_size = 64):
     print(os.listdir(folder_path))
     folder_path = Path(folder_path)
 
-    return preprocessing_dataset(folder_path, project_path, output_size)
+    return preprocessing_dataset(folder_path, project_path, model, output_size)
 
 
-def preprocessing_dataset(folder_path, project_path, output_size = 64):
+def preprocessing_dataset(folder_path, project_path, model, preprocessing_bool=True, output_size = 64):
 
+    if model is None:
+            model = load_model()
     # Load model once for the whole iteration
-    model = load_model()
+
+    folder_path = Path(folder_path)
 
     df = pd.DataFrame()
 
@@ -150,11 +154,26 @@ def preprocessing_dataset(folder_path, project_path, output_size = 64):
             print(f"Processing: {images} in folder: {subfolder.name}")
 
             #Call image_preprocessing for every image
-            resized_img = image_preprocessing(str(image_path), output_size, model)
+
+            if preprocessing_bool:
+                resized_img = image_preprocessing(str(image_path), output_size, model)
+            else:
+                resized_img = img
+
+
+
+            ###############
+
+
+            img = Image.open(image_path, mode = 'r')
+            print(img)
+            #grey_image = rgb2gray(img)
+
+            ###############
 
             #Convert and write image file
-            grey_image_uint8 = (resized_img *255).astype(np.uint8)
-            cv2.imwrite(os.path.join(new_folder_path, images), grey_image_uint8)
+            grey_image_uint8 = (img *255).astype(np.uint8)
+            #cv2.imwrite(os.path.join(new_folder_path, images), grey_image_uint8)
 
             # Extract letter from image name
             label = os.path.splitext(images)
@@ -169,5 +188,6 @@ def preprocessing_dataset(folder_path, project_path, output_size = 64):
             new_row = pd.DataFrame([dict(result)], index=[label[0]])
             df = pd.concat([df, new_row])
 
-    print(f'Saved csv file in {project_path/ "data" / "preprocessed"}')
+    df.index.name = 'label'
     df.to_csv(project_path/ "data" / "preprocessed" / 'processed_training_data.csv')
+    print(f'Saved csv file in {project_path/ "data" / "preprocessed"}')
