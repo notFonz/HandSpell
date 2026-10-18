@@ -17,8 +17,17 @@
     - +/- 15% brightness/contrast
     - 3 degrees rotation
 
+### 2. Sign Language Gesture Images Dataset - Preprocessed ([link](https://www.kaggle.com/datasets/ahmedkhanak1995/sign-language-gesture-images-dataset))
 
-### 2. Sign Language MNIST - Original ([link](https://github.com/mon95/Sign-Language-and-Static-gesture-recognition-using-sklearn/blob/master/Dataset.zip))
+- Author: Ahmed Khan
+- 37 labels:
+  - 10 numbers (0 to 9)
+  - 26 letters (A-Z)
+  - space
+
+## B. Static Non-Cropped Labeled Images
+
+### 1. Sign Language MNIST - Original ([link](https://github.com/mon95/Sign-Language-and-Static-gesture-recognition-using-sklearn/blob/master/Dataset.zip))
 
 - 240x320 color images (3 channels)
 - 24 classes of letters (excluding J and Z which require motion)
