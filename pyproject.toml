@@ -8,24 +8,20 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "rich>=15.0.0",
-    "huggingface-hub>=2.2.0",
-    "jupyter>=1.1.1",
-    "scikit-image>=0.26.0",
-    "ultralytics>=8.4.175",
-    "joblib>=1.6.0",
-    "matplotlib>=3.11.2",
     "numpy>=2.5.4",
     "pandas>=3.0.6",
-    "python-multipart>=0.0.32",
     "scikit-learn>=1.9.1",
-    "seaborn>=0.13.2",
-    "tensorflow>=2.21.0",
+    "ultralytics>=8.4.175",
+    "scikit-image>=0.26.0",
+    "python-multipart>=0.0.32",
     "uvicorn>=0.54.0",
     "fastapi>=0.143.0",
-    "opencv-python>=5.0.0.93",
-    "opencv-python-headless>=5.0.0.93",
     "aiofiles>=25.1.0",
+    "keras>=3.15.1",
+    "tensorflow>=2.21.0",
+    "opencv-python-headless>=5.0.0.93",
+    "torch>=2.14.1",
+    "torchvision>=0.29.1",
 ]
 
 [project.scripts]
@@ -40,4 +36,56 @@ dev = [
     "ipdb>=0.13.13",
     "ipykernel>=7.4.0",
     "ipython>=9.17.1",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.11.2",
+    "seaborn>=0.13.2",
 ]
+
+[tool.uv]
+# ultralytics depends on opencv-python (the GUI build), which needs X11/OpenGL
+# system libraries that python:3.12-slim doesn't have, and it segfaults in our
+# Docker image. This override drops it, and cv2 is provided by
+# opencv-python-headless (a direct dependency) instead.
+#
+# Both packages install into the same cv2/ folder, so never have both installed.
+# If cv2 disappears after a change, run:
+#   uv sync --reinstall-package opencv-python-headless
+#
+# Revisit when:
+# - ultralytics switches to opencv-python-headless itself; then this override
+#   can go.
+# - you need cv2.imshow / GUI windows locally; headless has no GUI. Change the
+#   marker to sys_platform == 'linux' so only the Docker image drops it, and add
+#   opencv-python-headless with the same Linux marker.
+# - you remove opencv-python-headless; then nothing provides cv2 and
+#   ultralytics will fail to import.
+override-dependencies = ["opencv-python; sys_platform == 'never'"]
+
+[tool.uv.sources]
+# On Linux (our Docker image / Cloud Run), install CPU-only PyTorch.
+# The default PyPI build for Linux bundles CUDA (several GB of nvidia-* packages)
+# and Triton. We have no GPU, and Triton's bundled LLVM clashes with
+# TensorFlow's: it segfaulted on the first /predict call. The CPU wheels
+# include neither.
+# macOS isn't matched by the marker, so it keeps the normal PyPI wheels.
+#
+# Revisit when:
+# - deploying to a GPU machine; switch the index to a CUDA one
+#   (e.g. https://download.pytorch.org/whl/cu128), or drop these lines to use
+#   PyPI. Expect the Triton/TensorFlow clash to come back if both frameworks
+#   still share one process.
+# - adding another PyTorch package (torchaudio, etc.); add it here too,
+#   otherwise it comes from PyPI and its version won't match torch.
+# - the API stops using TensorFlow; the Triton clash goes away, but CPU wheels
+#   are still the right choice without a GPU.
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+torchvision = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+# PyTorch's own index for CPU-only wheels. explicit = true means uv uses it
+# only for the packages mapped to it above, and everything else still comes
+# from PyPI.
+# torch and torchvision must stay direct dependencies, or uv ignores these sources
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
