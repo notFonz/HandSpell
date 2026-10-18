@@ -80,6 +80,8 @@ def plot_example_images(dataset_df, get_image_from_row,
             ax.set_title(letter)
             ax.set_axis_off()
 
+    return f1, f2
+
 
 ########################################
 #                                      #
