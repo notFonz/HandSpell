@@ -145,8 +145,7 @@ def save_as_images_a01(dataset_label=A01_LABEL):
 
 
 # Get | dataset | letter | width | height | channels | image_path | train  or test
-def get_a01_dataset_infos(save=True):
-    dataset_label = "A01_kaggle_aslmnist"
+def get_a01_dataset_infos(dataset_label=A01_LABEL, save=True):
     dataset_path = "../data/raw_data/" + dataset_label
 
     train_samples, test_samples = save_as_images_a01()
@@ -178,9 +177,10 @@ def get_a01_dataset_infos(save=True):
 #                                      #
 ########################################
 
+B01_LABEL = "B01_original_aslmnist"
+
 # Get | dataset | person | label | image_name | width | height | channels | image_path |
-def get_b01_dataset_infos(save=True):
-    dataset_label = "B01_original_aslmnist"
+def get_b01_dataset_infos(dataset_label=B01_LABEL, save=True):
     dataset_path = "../data/raw_data/" + dataset_label
     rows = []
     exceptions = []
