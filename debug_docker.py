@@ -11,4 +11,4 @@ p = image_preprocessing(sys.argv[1])
 
 ## Run in terminal:
 # docker run --rm -v "$(pwd):/work" -w /app --entrypoint .venv/bin/python \
-#  handspell-api:local /src/debug_utils/debug_docker.py data/mapping/ASL\ Letter\ Reference/A.jpg
+#  handspell-api:local /work/debug_docker.py data/mapping/ASL\ Letter\ Reference/A.jpg

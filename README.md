@@ -56,11 +56,24 @@ make docker_push
 make docker_deploy
 ```
 
-Upon changes, test locally
+Upon changes, test locally outside of a docker image
+
+```bash
+make run_api
+```
+
+And locally inside a docker image
 
 ```bash
 make docker_build_local
 make docker_run_local
+```
+
+In case of issues, you can edit `debug_docker.py` and run the following to
+reproduce errros and try fixes:
+```bash
+docker run --rm -v "$(pwd):/work" -w /app --entrypoint .venv/bin/python \
+  handspell-api:local /work/debug_docker.py data/mapping/ASL\ Letter\ Reference/A.jpg
 ```
 
 then deploy
