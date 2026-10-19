@@ -12,7 +12,6 @@ COPY src/ ./src/
 COPY pyproject.toml pyproject.toml
 COPY uv.lock uv.lock
 COPY README.md README.md
-COPY "data/raw_data/A02_original_aslmnist/user_7/A0.jpg" "data/raw_data/A02_original_aslmnist/user_7/A0.jpg"
 COPY "data/mapping" "data/mapping"
 
 ENV UV_NO_DEV=1 \
@@ -22,6 +21,7 @@ LETTER_CLASSIFICATION_MODEL_PATH=models/asl_model.keras
 
 RUN uv sync
 
+# To test preprocess_and_predict() using in the /predict endpoints
 # RUN uv run src/handspell/model.py
 
 # Google Cloud Run will override the PORT environment variable if specified in the service configuration.
