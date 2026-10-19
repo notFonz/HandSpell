@@ -4,7 +4,8 @@
 # that clash). Keep this first and don't let an import sorter move it.
 import torch  # noqa: F401  # isort: skip
 
-from fastapi import FastAPI, Request, UploadFile, File
+from fastapi import FastAPI, Request, UploadFile, File, HTTPException
+from fastapi.responses import FileResponse
 from starlette.concurrency import run_in_threadpool
 from contextlib import asynccontextmanager
 import os
@@ -17,6 +18,8 @@ from shutil import rmtree
 from handspell.data_preprocessing import load_model as load_preprocessing_model
 
 from handspell.model import load_model, preprocess_and_predict_api
+
+from handspell.text_to_image import text_to_image_dict, text_to_image_path, IMAGES_DIR
 
 """
     HandSpell API main module
@@ -51,6 +54,10 @@ async def lifespan(app: FastAPI):
     print("Models loaded successfully.")
 
     reset_temp_folder()
+
+    app.state.letter_dict = text_to_image_dict(
+        IMAGES_DIR
+    )
 
     yield  # The API serves requests during this period
 
@@ -109,3 +116,28 @@ async def predict_and_save(request: Request, file: UploadFile = File(...)):
 def clear_temp():
     reset_temp_folder()
     return "Temporary files trashed 🗑️✅"
+
+
+@app.get("/sign/{letter}")
+def letter_to_image(request: Request, letter: str):
+    # Gets letter as a variable on get and then on the function
+    if len(letter) > 1:
+
+        raise HTTPException(status_code=404,
+                                    detail= f'Pumba does not recognize J and Z since these letters require motion, multiple letters or numbers :D')
+
+    # Get the image path depending on the letter
+    path_result = text_to_image_path(letter,
+                                     mappingdict = request.app.state.letter_dict)
+
+    # Handles the 500 error if path is none
+    if path_result is None:
+
+        raise HTTPException(status_code=404,
+                            detail= f'Pumba does not recognize J and Z since these letters require motion, multiple letters or numbers :D')
+    # Use FileResponse to get the image from the path, I don't know if this works on Docker
+    else:
+
+        image = FileResponse(path_result)
+
+    return image
