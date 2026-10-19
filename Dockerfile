@@ -7,7 +7,7 @@ WORKDIR /app
 
 COPY api/ ./api/
 COPY models/yolo26m-seg-hand.pt ./models/hand_detection_model.pt
-COPY models/model_MINST_64x64.keras ./models/asl_model.keras
+COPY models/mnist_baseline_model.keras ./models/asl_model.keras
 COPY src/ ./src/
 COPY pyproject.toml pyproject.toml
 COPY uv.lock uv.lock
