@@ -121,6 +121,10 @@ def clear_temp():
 @app.get("/sign/{letter}")
 def letter_to_image(request: Request, letter: str):
     # Gets letter as a variable on get and then on the function
+    if len(letter) > 1:
+
+        raise HTTPException(status_code=404,
+                                    detail= f'Pumba does not recognize J and Z since these letters require motion, multiple letters or numbers :D')
 
     # Get the image path depending on the letter
     path_result = text_to_image_path(letter,
