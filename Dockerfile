@@ -13,6 +13,7 @@ COPY pyproject.toml pyproject.toml
 COPY uv.lock uv.lock
 COPY README.md README.md
 COPY "data/raw_data/A02_original_aslmnist/user_7/A0.jpg" "data/raw_data/A02_original_aslmnist/user_7/A0.jpg"
+COPY "data/mapping" "data/mapping"
 
 ENV UV_NO_DEV=1 \
 UV_FROZEN=1
