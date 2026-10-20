@@ -9,7 +9,7 @@ import os
 from PIL import Image, ImageOps
 from tqdm.auto import tqdm
 
-ROOT = '../data/dataset/D02_original_aslmnist'
+ROOT = '../data/dataset/D01_megadataset'
 
 LETTERS = "ABCDEFGHIKLMNOPQRSTUVWXY"
 LABEL_MAP = {letter: index for index, letter in enumerate(LETTERS)}
