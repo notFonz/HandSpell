@@ -7,15 +7,17 @@ from mediapipe import tasks
 from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarker as PythonHandLandmarker
 import os
 from PIL import Image, ImageOps
-from tqdm.auto import tqdm
+
+from joblib import load
+from xgboost import XGBClassifier
+from xgboost.sklearn import XGBClassifier as sklearnXGBClassifier
 
 ROOT = '../data/dataset/D01_megadataset'
 
 LETTERS = "ABCDEFGHIKLMNOPQRSTUVWXY"
 LABEL_MAP = {letter: index for index, letter in enumerate(LETTERS)}
 
-HAND_MODEL = "../models/hand_landmarker.task"
-os.makedirs("../models", exist_ok=True)
+HAND_MODEL = os.environ["HAND_LANDMARKER_PATH"]
 
 MODEL_URL = (
     "https://storage.googleapis.com/mediapipe-models/"
@@ -23,16 +25,20 @@ MODEL_URL = (
     "hand_landmarker.task"
 )
 
+ASL_MODEL_LANDMARKS = os.environ["ASL_MODEL_LANDMARKS_PATH"]
+
 def create_landmarker(hand_model_path: str=HAND_MODEL,
                       num_hands: int=1,
                       min_hand_detection_confidence: float=0.5,
                       min_hand_presence_confidence: float=0.5,
-                      running_mode: tasks.vision.RunningMode=tasks.vision.RunningMode.IMAGE
+                      running_mode: tasks.vision.RunningMode=tasks.vision.RunningMode.IMAGE,
+                      download_if_needed: bool=True
                       ) -> PythonHandLandmarker:
-    if not Path(HAND_MODEL).exists():
-        urlretrieve(MODEL_URL, HAND_MODEL)
+    if download_if_needed:
+        if not Path(HAND_MODEL).exists():
+            urlretrieve(MODEL_URL, HAND_MODEL)
 
-    print("MediaPipe model:", HAND_MODEL)
+        print("MediaPipe model:", HAND_MODEL)
 
     # Configure MediaPipe HandLandmarker
     options = tasks.vision.HandLandmarkerOptions(
@@ -126,23 +132,49 @@ def get_features(rgb: np.array, landmarker: PythonHandLandmarker):
     # 21 points × 3 coordinates = 63 features.
     return features, result.hand_landmarks[0]
 
-def extract_features(paths):
-    # NaN rows preserve failures in their original positions.
-    features = np.full((len(paths), 63), np.nan, dtype=np.float32)
-    failures = []
 
-    with create_landmarker() as landmarker:
-        for index, path in enumerate(tqdm(paths)):
-            try:
-                rgb = read_rgb(path)
-                vector, _ = get_features(rgb, landmarker)
+def load_asl_model(model_path: str=ASL_MODEL_LANDMARKS):
+    model = load(model_path)
+    return model
 
-                if vector is None:
-                    failures.append((str(path), "No usable hand landmarks"))
-                else:
-                    features[index] = vector
+def predict_letter(scores: np.ndarray) -> dict:
 
-            except (OSError, ValueError, RuntimeError) as error:
-                failures.append((str(path), str(error)))
+    predicted_idx = int(np.argmax(scores))
 
-    return features, failures
+    return {
+        "letter": chr(predicted_idx + ord("A")),
+        "confidence": float(scores[predicted_idx])
+    }
+
+
+def preprocess_and_predict_api(image_path: str,
+                               hand_landmarker_model: PythonHandLandmarker,
+                               letter_classification_model: sklearnXGBClassifier,
+                           ):
+    """Predicts a ASL letter (not J or Z) from an image an image from a filepath.
+    Accepts jpg, png or jpeg files of any size.
+    Expects 'keras' model.
+
+    Returns:
+     - Dictionary with the most probable letter and its probability
+     - Array with the probabilities for each of the letters
+    """
+    default_result = {
+        "letter": "NO HAND",
+        "confidence": None
+    }
+
+    features, _ = get_features(read_rgb(image_path), hand_landmarker_model)
+    if features is None:
+        return default_result
+    else:
+        reshaped_features = np.expand_dims(features, 0)
+        usable = np.isfinite(reshaped_features).all()
+        if not usable:
+            return default_result
+        else:
+            probas = letter_classification_model.predict_proba(
+                reshaped_features
+            )[0]
+            r = predict_letter(probas)
+            return r
