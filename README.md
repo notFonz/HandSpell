@@ -82,3 +82,11 @@ make docker_build
 make docker_push
 make docker_deploy
 ```
+
+
+# Data download
+
+On max to unrar a folder:
+```bash
+tar -xvf ASLYset.rar
+```
