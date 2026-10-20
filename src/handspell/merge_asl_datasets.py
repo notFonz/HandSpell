@@ -28,15 +28,19 @@ Known broken image (from a dropped dataset, for reference):
 import os
 import re
 import shutil
+import time
 
-ROOT = os.path.expanduser("~/code/data")
-OUT = os.path.join(ROOT, "Mega Dataset")
+start_time = time.time()
+
+ROOT = os.path.expanduser("data")
+OUT = os.path.join(ROOT, "dataset" ,"D01_megadataset")
 
 LETTERS = list("ABCDEFGHIKLMNOPQRSTUVWXY")  # A–Y without J and Z
 IMG_EXT = (".jpg", ".jpeg", ".png")
 
 counts = {}
 
+os.makedirs(os.path.join(ROOT, "dataset"), exist_ok=True)
 
 def put(src, letter, prefix):
     """Copy one image into OUT/<LETTER>/<prefix>_<filename>."""
@@ -60,7 +64,7 @@ def copy_letter_dirs(base, prefix):
         if os.path.isdir(path) and len(d) == 1:
             for f in os.listdir(path):
                 if f.lower().endswith(IMG_EXT):
-                    put(os.path.join(path, f), d, prefix)
+                    put(os.path.join(path, f), d, prefix+"_")
 
 
 def main():
@@ -68,29 +72,61 @@ def main():
         os.makedirs(os.path.join(OUT, letter), exist_ok=True)
 
     # 1. American Sign Language (ASL) Dataset (lowercase letter folders)
-    copy_letter_dirs(os.path.join(ROOT, "American Sign Language (ASL) Dataset"), "asl-ds")
+    raw_dataset_label = "A03_kaggle_asl"
+    print(f"Adding {raw_dataset_label}...")
+    copy_letter_dirs(
+        base=os.path.join(ROOT, "raw_data", raw_dataset_label, "American"),
+        prefix=raw_dataset_label
+    )
+    print("Done!")
+    print()
 
     # 2. ASL-HG
+    raw_dataset_label = "A04_mandalay_aslhg"
+    print(f"Adding {raw_dataset_label}...")
     copy_letter_dirs(
-        os.path.join(ROOT, "ASL-HG American Sign Language Hand Gesture Image D",
-                     "ASL_HG_36000", "asl_dataset"),
-        "asl-hg",
+        base=os.path.join(ROOT, "raw_data", raw_dataset_label, "ASL_HG_36000", "asl_dataset"),
+        prefix=raw_dataset_label,
     )
+    print("Done!")
+    print()
 
     # 3. Sign Language MNIST ORIGINAL: user_N/A0.jpg, B3.jpg, ... (letter = first char)
-    mnist = os.path.join(ROOT, "Sign Language MNIST ORIGINAL", "Dataset")
+    raw_dataset_label = "B01_original_aslmnist"
+    print(f"Adding {raw_dataset_label}...")
+    mnist = os.path.join(ROOT, "raw_data", raw_dataset_label, "Dataset")
     for user in sorted(os.listdir(mnist)):
         path = os.path.join(mnist, user)
         if os.path.isdir(path):
             for f in os.listdir(path):
                 m = re.match(r"([A-Za-z])\d+", f)
                 if m and f.lower().endswith(IMG_EXT):
-                    put(os.path.join(path, f), m.group(1), f"mnist-orig_{user}")
+                    put(os.path.join(path, f), m.group(1), f"{raw_dataset_label}__{user}_")
+    print("Done!")
+    print()
+
+    # 4. Sign Language MNIST ORIGINAL: user_N/A0.jpg, B3.jpg, ... (letter = first char)
+    raw_dataset_label = "B02_aslyset"
+    print(f"Adding {raw_dataset_label}...")
+    asly = os.path.join(ROOT, "raw_data", raw_dataset_label, "ASLYset", "images")
+    for user in sorted(os.listdir(asly)):
+        path = os.path.join(asly, user)
+        if os.path.isdir(path):
+            copy_letter_dirs(
+                base=path,
+                prefix=f"{raw_dataset_label}__{user}_"
+            )
+
+    print("Done!")
+    print()
 
     print("Images per source:")
     for k, v in counts.items():
         print(f"  {k}: {v}")
     print(f"Total: {sum(counts.values())}")
+
+    end_time = time.time()
+    print(f"Processing datasets took {end_time-start_time} seconds")
 
 
 if __name__ == "__main__":
