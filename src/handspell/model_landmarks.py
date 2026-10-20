@@ -8,6 +8,8 @@ from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarker as Pyth
 import os
 from PIL import Image, ImageOps
 from tqdm.auto import tqdm
+from joblib import load
+from xgboost import XGBClassifier
 
 ROOT = '../data/dataset/D02_original_aslmnist'
 
@@ -22,6 +24,8 @@ MODEL_URL = (
     "hand_landmarker/hand_landmarker/float16/1/"
     "hand_landmarker.task"
 )
+
+ASL_MODEL_LANDMARKS = os.environ["ASL_MODEL_LANDMARKS"]
 
 def create_landmarker(hand_model_path: str=HAND_MODEL,
                       num_hands: int=1,
@@ -146,3 +150,8 @@ def extract_features(paths):
                 failures.append((str(path), str(error)))
 
     return features, failures
+
+
+def load_asl_model(model_path: str=ASL_MODEL_LANDMARKS):
+    model = load(model_path)
+    return model
