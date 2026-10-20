@@ -52,7 +52,7 @@ def load_model(model_path=None):
     return model
 
 
-def image_preprocessing(image_path, output_size=64, model=None):
+def image_preprocessing(image_path, output_size=50, model=None):
 
     if model is None:
         model = load_model()
@@ -99,7 +99,7 @@ def image_preprocessing(image_path, output_size=64, model=None):
 
     return resized_img
 
-def preprocessing_dataset_interactive(model, output_size = 64):
+def preprocessing_dataset_interactive(model, output_size = 50):
 
     project_path = Path(__file__).resolve().parents[2]
 
@@ -115,7 +115,7 @@ def preprocessing_dataset_interactive(model, output_size = 64):
     return preprocessing_dataset(folder_path, project_path, model, output_size)
 
 
-def preprocessing_dataset(folder_path, project_path, model, preprocessing_bool=True, output_size = 64):
+def preprocessing_dataset(folder_path, project_path, model, preprocessing_bool=True, output_size = 50):
 
     if model is None:
             model = load_model()
@@ -141,7 +141,7 @@ def preprocessing_dataset(folder_path, project_path, model, preprocessing_bool=T
 
         #Iterate through all files inside  the subfolder
         for image_path in subfolder.iterdir():
-
+            print(image_path)
             #Checks if file is a file and not a folder
             if not image_path.is_file():
                 continue
@@ -155,25 +155,25 @@ def preprocessing_dataset(folder_path, project_path, model, preprocessing_bool=T
 
             #Call image_preprocessing for every image
 
-            if preprocessing_bool:
-                resized_img = image_preprocessing(str(image_path), output_size, model)
-            else:
-                resized_img = img
+            #if preprocessing_bool:
+            resized_img = image_preprocessing(str(image_path), output_size, model)
+           # else:
+            #    resized_img = img
 
 
 
             ###############
 
 
-            img = Image.open(image_path, mode = 'r')
-            print(img)
+            #img = Image.open(image_path, mode = 'r')
+            #print(img)
             #grey_image = rgb2gray(img)
 
             ###############
 
             #Convert and write image file
-            grey_image_uint8 = (img *255).astype(np.uint8)
-            #cv2.imwrite(os.path.join(new_folder_path, images), grey_image_uint8)
+            grey_image_uint8 = (resized_img *255).astype(np.uint8)
+            cv2.imwrite(os.path.join(new_folder_path, images), grey_image_uint8)
 
             # Extract letter from image name
             label = os.path.splitext(images)
