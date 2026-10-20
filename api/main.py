@@ -1,8 +1,10 @@
+# import faulthandler, sys
+# faulthandler.dump_traceback_later(20, exit=False, file=sys.stderr)
 # Import order matters: torch (pulled in by ultralytics) must be loaded BEFORE
 # tensorflow. In the Linux Docker image, loading TensorFlow first makes YOLO
 # inference crash with "free(): invalid pointer" (both bundle native libraries
 # that clash). Keep this first and don't let an import sorter move it.
-import torch  # noqa: F401  # isort: skip
+# import torch  # noqa: F401  # isort: skip
 
 from fastapi import FastAPI, Request, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
@@ -14,11 +16,12 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 from PIL import Image
 from shutil import rmtree
+import joblib
+from xgboost import XGBClassifier
 
-from handspell.data_preprocessing import load_model as load_preprocessing_model
+# from handspell.data_preprocessing import load_model as load_preprocessing_model
 
-from handspell.model import load_model, preprocess_and_predict_api
-
+from handspell.model_landmarks import create_landmarker, preprocess_and_predict_api
 from handspell.text_to_image import text_to_image_dict, text_to_image_path, IMAGES_DIR
 
 """
@@ -27,12 +30,12 @@ from handspell.text_to_image import text_to_image_dict, text_to_image_path, IMAG
     It includes the endpoint for predicting letters from uploaded images.
 """
 
-HAND_DETECTION_MODEL_PATH = os.environ["HAND_DETECTION_MODEL_PATH"]
-LETTER_CLASSIFICATION_MODEL_PATH = os.environ["LETTER_CLASSIFICATION_MODEL_PATH"]
-TEMPORARY_FOLDER = ".temporary/"
+HAND_LANDMARKER_PATH = os.environ["HAND_LANDMARKER_PATH"]
+ASL_MODEL_LANDMARKS_PATH = os.environ["ASL_MODEL_LANDMARKS_PATH"]
+# TEMPORARY_FOLDER = ".temporary/"
 
-print("Hand detection model: ", HAND_DETECTION_MODEL_PATH)
-print("ASL model: ", LETTER_CLASSIFICATION_MODEL_PATH)
+# print("Hand landmarker model: ", HAND_LANDMARKER_PATH)
+# print("ASL model: ", ASL_MODEL_LANDMARKS_PATH)
 
 def reset_temp_folder():
     temp_folder = Path(TEMPORARY_FOLDER)
@@ -42,18 +45,18 @@ def reset_temp_folder():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Runs before the API accepts requests
-    print(f"Loading model from: {LETTER_CLASSIFICATION_MODEL_PATH}")
 
-    app.state.asl_model = load_model(
-        LETTER_CLASSIFICATION_MODEL_PATH
+    print(f"Loading model from: {HAND_LANDMARKER_PATH}")
+    app.state.hand_model = create_landmarker(
+        HAND_LANDMARKER_PATH, download_if_needed=False
     )
-    app.state.hand_model = load_preprocessing_model(
-        model_path=HAND_DETECTION_MODEL_PATH, download_if_needed=False
-    )
+
+    print(f"Loading ASL model from: {ASL_MODEL_LANDMARKS_PATH}")
+    app.state.asl_model = joblib.load(ASL_MODEL_LANDMARKS_PATH)
 
     print("Models loaded successfully.")
 
-    reset_temp_folder()
+    # reset_temp_folder()
 
     app.state.letter_dict = text_to_image_dict(
         IMAGES_DIR
@@ -85,12 +88,13 @@ def predict(request: Request, file: UploadFile):
 
         # Open the uploaded image and convert it to RGB before saving it temporarily.
         with Image.open(file.file) as image:
-            image.convert("RGB").save(image_path)
+            # image.convert("RGB").save(image_path)
+            image.save(image_path)
 
         # Call the preprocess_and_predict_api function with the temporary image path and the loaded models.
         result = preprocess_and_predict_api(
             image_path=str(image_path),
-            hand_detection_model=request.app.state.hand_model,
+            hand_landmarker_model=request.app.state.hand_model,
             letter_classification_model=request.app.state.asl_model,
         )
 
@@ -98,24 +102,24 @@ def predict(request: Request, file: UploadFile):
     return result
 
 
-@app.post("/predict_and_save_temp")
-async def predict_and_save(request: Request, file: UploadFile = File(...)):
+# @app.post("/predict_and_save_temp")
+# async def predict_and_save(request: Request, file: UploadFile = File(...)):
 
-    async with aiofiles.open(f"{TEMPORARY_FOLDER}/{file.filename}", 'wb') as out_file:
-        contents = await file.read()
-        await out_file.write(contents)  # async write
+#     async with aiofiles.open(f"{TEMPORARY_FOLDER}/{file.filename}", 'wb') as out_file:
+#         contents = await file.read()
+#         await out_file.write(contents)  # async write
 
-    return await run_in_threadpool(
-        preprocess_and_predict_api,
-        f"{TEMPORARY_FOLDER}/{file.filename}",
-        request.app.state.hand_model,
-        request.app.state.asl_model
-    )
+#     return await run_in_threadpool(
+#         preprocess_and_predict_api,
+#         f"{TEMPORARY_FOLDER}/{file.filename}",
+#         request.app.state.hand_model,
+#         request.app.state.asl_model
+#     )
 
-@app.delete("/clear_temp")
-def clear_temp():
-    reset_temp_folder()
-    return "Temporary files trashed 🗑️✅"
+# @app.delete("/clear_temp")
+# def clear_temp():
+#     reset_temp_folder()
+#     return "Temporary files trashed 🗑️✅"
 
 
 @app.get("/sign/{letter}")

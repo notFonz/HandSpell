@@ -17,8 +17,7 @@ ROOT = '../data/dataset/D02_original_aslmnist'
 LETTERS = "ABCDEFGHIKLMNOPQRSTUVWXY"
 LABEL_MAP = {letter: index for index, letter in enumerate(LETTERS)}
 
-HAND_MODEL = "../models/hand_landmarker.task"
-os.makedirs("../models", exist_ok=True)
+HAND_MODEL = os.environ["HAND_LANDMARKER_PATH"]
 
 MODEL_URL = (
     "https://storage.googleapis.com/mediapipe-models/"
@@ -26,18 +25,20 @@ MODEL_URL = (
     "hand_landmarker.task"
 )
 
-ASL_MODEL_LANDMARKS = os.environ["ASL_MODEL_LANDMARKS"]
+ASL_MODEL_LANDMARKS = os.environ["ASL_MODEL_LANDMARKS_PATH"]
 
 def create_landmarker(hand_model_path: str=HAND_MODEL,
                       num_hands: int=1,
                       min_hand_detection_confidence: float=0.5,
                       min_hand_presence_confidence: float=0.5,
-                      running_mode: tasks.vision.RunningMode=tasks.vision.RunningMode.IMAGE
+                      running_mode: tasks.vision.RunningMode=tasks.vision.RunningMode.IMAGE,
+                      download_if_needed: bool=True
                       ) -> PythonHandLandmarker:
-    if not Path(HAND_MODEL).exists():
-        urlretrieve(MODEL_URL, HAND_MODEL)
+    if download_if_needed:
+        if not Path(HAND_MODEL).exists():
+            urlretrieve(MODEL_URL, HAND_MODEL)
 
-    print("MediaPipe model:", HAND_MODEL)
+        print("MediaPipe model:", HAND_MODEL)
 
     # Configure MediaPipe HandLandmarker
     options = tasks.vision.HandLandmarkerOptions(
@@ -179,15 +180,19 @@ def preprocess_and_predict_api(image_path: str,
      - Dictionary with the most probable letter and its probability
      - Array with the probabilities for each of the letters
     """
+    default_result = {
+        "letter": "NO HAND",
+        "confidence": None
+    }
 
     features, _ = get_features(read_rgb(image_path), hand_landmarker_model)
     if features is None:
-        pass
+        return default_result
     else:
         reshaped_features = np.expand_dims(features, 0)
         usable = np.isfinite(reshaped_features).all()
         if not usable:
-            pass
+            return default_result
         else:
             probas = letter_classification_model.predict_proba(
                 reshaped_features
