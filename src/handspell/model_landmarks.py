@@ -10,6 +10,7 @@ from PIL import Image, ImageOps
 from tqdm.auto import tqdm
 from joblib import load
 from xgboost import XGBClassifier
+from xgboost.sklearn import XGBClassifier as sklearnXGBClassifier
 
 ROOT = '../data/dataset/D02_original_aslmnist'
 
@@ -155,3 +156,41 @@ def extract_features(paths):
 def load_asl_model(model_path: str=ASL_MODEL_LANDMARKS):
     model = load(model_path)
     return model
+
+def predict_letter(scores: np.ndarray) -> dict:
+
+    predicted_idx = int(np.argmax(scores))
+
+    return {
+        "letter": chr(predicted_idx + ord("A")),
+        "confidence": float(scores[predicted_idx])
+    }
+
+
+def preprocess_and_predict_api(image_path: str,
+                               hand_landmarker_model: PythonHandLandmarker,
+                               letter_classification_model: sklearnXGBClassifier,
+                           ):
+    """Predicts a ASL letter (not J or Z) from an image an image from a filepath.
+    Accepts jpg, png or jpeg files of any size.
+    Expects 'keras' model.
+
+    Returns:
+     - Dictionary with the most probable letter and its probability
+     - Array with the probabilities for each of the letters
+    """
+
+    features, _ = get_features(read_rgb(image_path), hand_landmarker_model)
+    if features is None:
+        pass
+    else:
+        reshaped_features = np.expand_dims(features, 0)
+        usable = np.isfinite(reshaped_features).all()
+        if not usable:
+            pass
+        else:
+            probas = letter_classification_model.predict_proba(
+                reshaped_features
+            )[0]
+            r = predict_letter(probas)
+            return r
