@@ -18,6 +18,7 @@ from PIL import Image
 from shutil import rmtree
 import joblib
 from xgboost import XGBClassifier
+import threading
 
 # from handspell.data_preprocessing import load_model as load_preprocessing_model
 
@@ -77,6 +78,9 @@ app = FastAPI(lifespan=lifespan)
 def root():
     return {"text": "Welcome to the HandSpell API"}
 
+# Only one request at a time may use the MediaPipe HandLandmarker (it isn't thread-safe).
+# FastAPI runs plain `def` endpoints in a threadpool, so a threading.Lock is needed here.
+predict_lock = threading.Lock()
 
 @app.post("/predict")
 def predict(request: Request, file: UploadFile):
@@ -91,12 +95,14 @@ def predict(request: Request, file: UploadFile):
             # image.convert("RGB").save(image_path)
             image.save(image_path)
 
-        # Call the preprocess_and_predict_api function with the temporary image path and the loaded models.
-        result = preprocess_and_predict_api(
-            image_path=str(image_path),
-            hand_landmarker_model=request.app.state.hand_model,
-            letter_classification_model=request.app.state.asl_model,
-        )
+        # Only the landmarker and classifier call needs to be serialized.
+        with predict_lock:
+            # Call the preprocess_and_predict_api function with the temporary image path and the loaded models.
+            result = preprocess_and_predict_api(
+                image_path=str(image_path),
+                hand_landmarker_model=request.app.state.hand_model,
+                letter_classification_model=request.app.state.asl_model,
+            )
 
     # After exiting the context manager, the temporary directory and image are automatically removed.
     return result

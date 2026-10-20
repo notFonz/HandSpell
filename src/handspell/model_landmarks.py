@@ -7,7 +7,7 @@ from mediapipe import tasks
 from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarker as PythonHandLandmarker
 import os
 from PIL import Image, ImageOps
-from tqdm.auto import tqdm
+
 from joblib import load
 from xgboost import XGBClassifier
 from xgboost.sklearn import XGBClassifier as sklearnXGBClassifier
@@ -131,27 +131,6 @@ def get_features(rgb: np.array, landmarker: PythonHandLandmarker):
 
     # 21 points × 3 coordinates = 63 features.
     return features, result.hand_landmarks[0]
-
-def extract_features(paths):
-    # NaN rows preserve failures in their original positions.
-    features = np.full((len(paths), 63), np.nan, dtype=np.float32)
-    failures = []
-
-    with create_landmarker() as landmarker:
-        for index, path in enumerate(tqdm(paths)):
-            try:
-                rgb = read_rgb(path)
-                vector, _ = get_features(rgb, landmarker)
-
-                if vector is None:
-                    failures.append((str(path), "No usable hand landmarks"))
-                else:
-                    features[index] = vector
-
-            except (OSError, ValueError, RuntimeError) as error:
-                failures.append((str(path), str(error)))
-
-    return features, failures
 
 
 def load_asl_model(model_path: str=ASL_MODEL_LANDMARKS):

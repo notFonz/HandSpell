@@ -65,6 +65,7 @@ make run_api
 And locally inside a docker image
 
 ```bash
+uv sync --no-dev
 make docker_build_local
 make docker_run_local
 ```
@@ -78,6 +79,7 @@ docker run --rm -v "$(pwd):/work" -w /app --entrypoint .venv/bin/python \
 
 then deploy
 ```bash
+uv sync --no-dev
 make docker_build
 make docker_push
 make docker_deploy
