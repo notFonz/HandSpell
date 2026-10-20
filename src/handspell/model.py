@@ -1,16 +1,23 @@
 # Imports for general model training
+
+# Import order matters: torch (pulled in by ultralytics) must be loaded BEFORE
+# tensorflow. In the Linux Docker image, loading TensorFlow first makes YOLO
+# inference crash with "free(): invalid pointer" (both bundle native libraries
+# that clash). Keep this first and don't let an import sorter move it.
+import torch  # noqa: F401  # isort: skip
+
+import os
 import numpy as np
 import pandas as pd
-import keras
-
+from keras.models import load_model as keras_load_model
 from tensorflow.keras import Sequential, Input, layers
 from tensorflow.keras import optimizers
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
-
 from sklearn.model_selection import train_test_split
 
-from handspell.data_preprocessing import image_preprocessing
+from handspell.data_preprocessing import load_model as preprocessing_load_model, image_preprocessing
 
+MODEL_PATH = os.environ["LETTER_CLASSIFICATION_MODEL_PATH"]
 
 def dataset_load(train_path: str, test_path: str):
     """Function to load both datasets"""
@@ -146,10 +153,16 @@ def save_model(model, model_file_name: str="models/model_hand28x28_letter.keras"
 
     return
 
-def load_model(path: str):
+def load_model(path: str=None):
     """Function to load model"""
 
-    loaded_model = keras.models.load_model(path)
+    if path is None:
+        path = MODEL_PATH
+
+
+    print("ASL: ", path, os.path.exists(path))
+
+    loaded_model = keras_load_model(path)
 
     return loaded_model
 
@@ -195,7 +208,6 @@ def predict(image: np.array, model: Sequential):
      - Array with the probabilities for each of the letters
     """
 
-
     predictions = model.predict(image)
 
     predicted_letter = predict_letter(predictions[0])
@@ -203,7 +215,7 @@ def predict(image: np.array, model: Sequential):
     return predicted_letter, predictions
 
 
-def preprocess_and_predict(image_path: str, model_path: str
+def preprocess_and_predict(image_path: str, model_path: str, pixel_size: int = 28
                            ):
     """Predicts a ASL letter (not J or Z) from an image an image from a filepath.
     Accepts jpg, png or jpeg files of any size.
@@ -213,16 +225,23 @@ def preprocess_and_predict(image_path: str, model_path: str
      - Dictionary with the most probable letter and its probability
      - Array with the probabilities for each of the letters
     """
-    reshaped_img = preprocess_from_image_path(image_path)
+    preprocessed_img = image_preprocessing(
+        image_path,
+        output_size=pixel_size,
+        save_image=False
+    )
 
     model = load_model(model_path)
+
+    reshaped_img = preprocessed_img.reshape(1, pixel_size, pixel_size, 1)
 
     predicted_letter, predictions = predict(reshaped_img, model)
 
     return predicted_letter, predictions
 
 
-def preprocess_and_predict_api(image_path: str, hand_detection_model, letter_classification_model: Sequential
+def preprocess_and_predict_api(image_path: str, hand_detection_model, letter_classification_model: Sequential,
+                               pixel_size: int = 28
                            ):
     """Predicts a ASL letter (not J or Z) from an image an image from a filepath.
     Accepts jpg, png or jpeg files of any size.
@@ -232,8 +251,39 @@ def preprocess_and_predict_api(image_path: str, hand_detection_model, letter_cla
      - Dictionary with the most probable letter and its probability
      - Array with the probabilities for each of the letters
     """
-    reshaped_img = preprocess_from_image_path(image_path=image_path, model=hand_detection_model)
+    preprocessed_img = image_preprocessing(image_path=image_path,
+                                           model=hand_detection_model,
+                                           output_size=pixel_size,
+                                           save_image=False)
+
+    reshaped_img = preprocessed_img.reshape(1, pixel_size, pixel_size, 1)
 
     predicted_letter, _ = predict(reshaped_img, letter_classification_model)
 
     return predicted_letter
+
+
+if __name__ == "__main__":
+    # print("Preprocess and predict:")
+    # r = preprocess_and_predict(
+    #        image_path="data/mapping/ASL Letter Reference/A.jpg",
+    #     model_path=MODEL_PATH
+    # )
+
+    # print(r)
+
+    print("Preprocess and predict API:")
+    yolo_model = preprocessing_load_model(
+        model_path=os.environ["HAND_DETECTION_MODEL_PATH"],
+        download_if_needed=False
+    )
+    asl_model = load_model(path=os.environ["LETTER_CLASSIFICATION_MODEL_PATH"])
+
+    r = preprocess_and_predict_api(
+            image_path="data/mapping/ASL Letter Reference/A.jpg",
+            hand_detection_model=yolo_model,
+            letter_classification_model=asl_model,
+            pixel_size=28
+        )
+
+    print(r)
