@@ -15,7 +15,7 @@ import aiofiles
 from tempfile import TemporaryDirectory
 from pathlib import Path
 from PIL import Image
-from shutil import rmtree
+from shutil import rmtree, copyfileobj
 import joblib
 from xgboost import XGBClassifier
 import threading
@@ -33,10 +33,7 @@ from handspell.text_to_image import text_to_image_dict, text_to_image_path, IMAG
 
 HAND_LANDMARKER_PATH = os.environ["HAND_LANDMARKER_PATH"]
 ASL_MODEL_LANDMARKS_PATH = os.environ["ASL_MODEL_LANDMARKS_PATH"]
-# TEMPORARY_FOLDER = ".temporary/"
-
-# print("Hand landmarker model: ", HAND_LANDMARKER_PATH)
-# print("ASL model: ", ASL_MODEL_LANDMARKS_PATH)
+TEMPORARY_FOLDER = ".temporary/"
 
 def reset_temp_folder():
     temp_folder = Path(TEMPORARY_FOLDER)
@@ -57,7 +54,7 @@ async def lifespan(app: FastAPI):
 
     print("Models loaded successfully.")
 
-    # reset_temp_folder()
+    reset_temp_folder()
 
     app.state.letter_dict = text_to_image_dict(
         IMAGES_DIR
@@ -90,16 +87,15 @@ def predict(request: Request, file: UploadFile):
             Path(temporary_directory) / "handspell_uploaded_temporary_image.png"
         )
 
-        # Open the uploaded image and convert it to RGB before saving it temporarily.
-        with Image.open(file.file) as image:
-            # image.convert("RGB").save(image_path)
-            image.save(image_path)
+        with open(image_path, "wb") as destination:
+            copyfileobj(file.file, destination)
 
         # Only the landmarker and classifier call needs to be serialized.
         with predict_lock:
             # Call the preprocess_and_predict_api function with the temporary image path and the loaded models.
             result = preprocess_and_predict_api(
                 image_path=str(image_path),
+                # image_path="data/raw_data/A05_notFonz_original/images/Afonso/H0.jpg",
                 hand_landmarker_model=request.app.state.hand_model,
                 letter_classification_model=request.app.state.asl_model,
             )
@@ -108,28 +104,28 @@ def predict(request: Request, file: UploadFile):
     return result
 
 
-# @app.post("/predict_and_save_temp")
-# async def predict_and_save(request: Request, file: UploadFile = File(...)):
+@app.post("/predict_and_save_temp")
+async def predict_and_save(request: Request, file: UploadFile = File(...)):
 
-#     async with aiofiles.open(f"{TEMPORARY_FOLDER}/{file.filename}", 'wb') as out_file:
-#         contents = await file.read()
-#         await out_file.write(contents)  # async write
+    async with aiofiles.open(f"{TEMPORARY_FOLDER}/{file.filename}", 'wb') as out_file:
+        contents = await file.read()
+        await out_file.write(contents)  # async write
 
-#     return await run_in_threadpool(
-#         preprocess_and_predict_api,
-#         f"{TEMPORARY_FOLDER}/{file.filename}",
-#         request.app.state.hand_model,
-#         request.app.state.asl_model
-#     )
+    return await run_in_threadpool(
+        preprocess_and_predict_api,
+        f"{TEMPORARY_FOLDER}/{file.filename}",
+        request.app.state.hand_model,
+        request.app.state.asl_model
+    )
 
-# @app.delete("/clear_temp")
-# def clear_temp():
-#     reset_temp_folder()
-#     return "Temporary files trashed 🗑️✅"
+@app.delete("/clear_temp")
+def clear_temp():
+    reset_temp_folder()
+    return "Temporary files trashed 🗑️✅"
 
 
 @app.get("/sign/{letter}")
-def letter_to_image(request: Request, letter: str):
+def letter_to_image(request: Request, letter: str) -> FileResponse:
     # Gets letter as a variable on get and then on the function
     if len(letter) > 1:
 
@@ -147,7 +143,6 @@ def letter_to_image(request: Request, letter: str):
                             detail= f'Pumba does not recognize J and Z since these letters require motion, multiple letters or numbers :D')
     # Use FileResponse to get the image from the path, I don't know if this works on Docker
     else:
-
         image = FileResponse(path_result)
 
     return image
