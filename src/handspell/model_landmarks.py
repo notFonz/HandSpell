@@ -1,18 +1,22 @@
 from pathlib import Path, PosixPath
 from urllib.request import urlretrieve
-
 import numpy as np
-from mediapipe import Image as mpImage, ImageFormat as mpImageFormat
-from mediapipe import tasks
-from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarker as PythonHandLandmarker
 import os
-from PIL import Image, ImageOps
-
+# from PIL import Image, ImageOps
 import joblib
 from xgboost import XGBClassifier
 from xgboost.sklearn import XGBClassifier as sklearnXGBClassifier
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from mediapipe import Image as mpImage, ImageFormat as mpImageFormat
+from mediapipe import tasks
+from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarker as PythonHandLandmarker
 
-ROOT = '../data/dataset/D01_megadataset'
+from xgboost import XGBClassifier
+from xgboost.sklearn import XGBClassifier as sklearnXGBClassifier
+
+
+
 
 LETTERS = "ABCDEFGHIKLMNOPQRSTUVWXY"
 LABEL_MAP = {letter: index for index, letter in enumerate(LETTERS)}
@@ -27,6 +31,15 @@ MODEL_URL = (
 
 ASL_MODEL_LANDMARKS = os.environ["ASL_MODEL_LANDMARKS_PATH"]
 
+HAND_CONNECTIONS = [
+    (0, 1), (1, 2), (2, 3), (3, 4),          # thumb
+    (0, 5), (5, 6), (6, 7), (7, 8),          # index
+    (9, 10), (10, 11), (11, 12),             # middle
+    (13, 14), (14, 15), (15, 16),            # ring
+    (0, 17), (17, 18), (18, 19), (19, 20),   # pinky
+    (5, 9), (9, 13), (13, 17),               # palm
+]
+
 def create_landmarker(hand_model_path: str=HAND_MODEL,
                       num_hands: int=1,
                       min_hand_detection_confidence: float=0.5,
@@ -35,10 +48,10 @@ def create_landmarker(hand_model_path: str=HAND_MODEL,
                       download_if_needed: bool=True
                       ) -> PythonHandLandmarker:
     if download_if_needed:
-        if not Path(HAND_MODEL).exists():
-            urlretrieve(MODEL_URL, HAND_MODEL)
+        if not Path(hand_model_path).exists():
+            urlretrieve(MODEL_URL, hand_model_path)
 
-        print("MediaPipe model:", HAND_MODEL)
+        print("MediaPipe model:", hand_model_path)
 
     # Configure MediaPipe HandLandmarker
     options = tasks.vision.HandLandmarkerOptions(
@@ -54,54 +67,36 @@ def create_landmarker(hand_model_path: str=HAND_MODEL,
     return tasks.vision.HandLandmarker.create_from_options(options)
 
 
-def find_images(root: str=ROOT):
-    root = Path(root)
+# def read_rgb(path: str):
+#     with Image.open(path) as original:
+#         oriented = ImageOps.exif_transpose(original).convert("RGBA")
+#         background = Image.new(
+#             "RGBA", oriented.size, (255, 255, 255, 255)
+#         )
+#         image = Image.alpha_composite(
+#             background, oriented
+#         ).convert("RGB")
 
-    if not root.is_dir():
-        raise FileNotFoundError(root)
+#         # Limit large images while preserving aspect ratio.
+#         image.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
 
-    paths, labels = [], []
-
-    for path in sorted(root.rglob("*")):
-        if not path.is_file():
-            continue
-
-        if path.suffix.lower() not in {".jpg", ".jpeg", ".png"}:
-            continue
-
-        letter = path.parent.name.upper()
-
-        if letter in LABEL_MAP:
-            paths.append(path)
-            labels.append(LABEL_MAP[letter])
-
-    if not paths:
-        raise ValueError(f"No images in supported letter folders: {root}")
-
-    return paths, np.array(labels, dtype=np.int64)
+#         return np.array(image)
 
 
-def read_rgb(path: PosixPath):
-    with Image.open(path) as original:
-        oriented = ImageOps.exif_transpose(original).convert("RGBA")
-        background = Image.new(
-            "RGBA", oriented.size, (255, 255, 255, 255)
-        )
-        image = Image.alpha_composite(
-            background, oriented
-        ).convert("RGB")
-
-        # Limit large images while preserving aspect ratio.
-        image.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
-
-        return np.array(image)
+# def get_image_rgb(image_path):
+#     rgb = read_rgb(image_path)
+#     image = mpImage(
+#         image_format=mpImageFormat.SRGB,
+#         data=np.ascontiguousarray(rgb),
+#     )
+#     return image, rgb
 
 
-def get_features(rgb: np.array, landmarker: PythonHandLandmarker):
-    image = mpImage(
-        image_format=mpImageFormat.SRGB,
-        data=np.ascontiguousarray(rgb),
-    )
+def get_features(image_path, landmarker: PythonHandLandmarker):
+    # image, rgb_image = get_image_rgb(image_path)
+
+    image = mpImage.create_from_file(image_path)
+    rgb_image = image.numpy_view()
 
     result = landmarker.detect(image)
 
@@ -115,7 +110,7 @@ def get_features(rgb: np.array, landmarker: PythonHandLandmarker):
     )
 
     # Express coordinates in consistent units.
-    height, width = rgb.shape[:2]
+    height, width = rgb_image.shape[:2]
     points *= np.array([width, height, width], dtype=np.float32)
 
     # Wrist becomes the origin.
@@ -130,7 +125,28 @@ def get_features(rgb: np.array, landmarker: PythonHandLandmarker):
     features = (relative / scale).reshape(-1)
 
     # 21 points × 3 coordinates = 63 features.
-    return features, result.hand_landmarks[0]
+    return features, result.hand_landmarks[0], rgb_image
+
+
+def plot_landmarks(rgb_image: np.array, landmarks: list) -> plt.figure:
+    # Plot
+    img = rgb_image
+    h, w = img.shape[:2]
+
+    f, ax = plt.subplots()
+    ax.imshow(img)
+    hand = landmarks
+
+    xs = [lm.x * w for lm in hand]
+    ys = [lm.y * h for lm in hand]
+
+    for a, b in HAND_CONNECTIONS:
+        ax.plot([xs[a], xs[b]], [ys[a], ys[b]], color="white", linewidth=2)
+    ax.scatter(xs, ys, s=20, c="cyan", zorder=3)
+
+
+    ax.set_axis_off()
+    return f
 
 
 def load_asl_model(model_path: str=ASL_MODEL_LANDMARKS):

@@ -1,22 +1,49 @@
 from pathlib import Path, PosixPath
 from urllib.request import urlretrieve
-
 import numpy as np
 from mediapipe import Image as mpImage, ImageFormat as mpImageFormat
 from mediapipe import tasks
 from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarker as PythonHandLandmarker
 import os
+import pandas as pd
 from PIL import Image, ImageOps
-
 from joblib import load
 from xgboost import XGBClassifier
 from xgboost.sklearn import XGBClassifier as sklearnXGBClassifier
 from tqdm.auto import tqdm
+from sklearn.metrics import accuracy_score, classification_report
 
-from handspell.model_landmarks import create_landmarker, read_rgb, get_features
-from handspell.model_landmarks import find_images
+from handspell.model_landmarks import create_landmarker, get_features, LETTERS, LABEL_MAP
 
-from tqdm.auto import tqdm
+
+
+ROOT = '../data/dataset/D01_megadataset'
+
+def find_images(root: str=ROOT):
+    root = Path(root)
+
+    if not root.is_dir():
+        raise FileNotFoundError(root)
+
+    paths, labels = [], []
+
+    for path in sorted(root.rglob("*")):
+        if not path.is_file():
+            continue
+
+        if path.suffix.lower() not in {".jpg", ".jpeg", ".png"}:
+            continue
+
+        letter = path.parent.name.upper()
+
+        if letter in LABEL_MAP:
+            paths.append(path)
+            labels.append(LABEL_MAP[letter])
+
+    if not paths:
+        raise ValueError(f"No images in supported letter folders: {root}")
+
+    return paths, np.array(labels, dtype=np.int64)
 
 def extract_features(paths):
     # NaN rows preserve failures in their original positions.
@@ -26,8 +53,7 @@ def extract_features(paths):
     with create_landmarker() as landmarker:
         for index, path in enumerate(tqdm(paths)):
             try:
-                rgb = read_rgb(path)
-                vector, _ = get_features(rgb, landmarker)
+                vector, _, _ = get_features(path, landmarker)
 
                 if vector is None:
                     failures.append((str(path), "No usable hand landmarks"))
