@@ -1,5 +1,5 @@
 
-LETTER_TO_INDEX = {
+ETTER_TO_INDEX = {
     "A": 0,
     "B": 1,
     "C": 2,
