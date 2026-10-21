@@ -161,10 +161,10 @@ def preprocess_and_predict_api(image_path: str,
      - Array with the probabilities for each of the letters
     """
     default_result = {
-        "letter": "NO HAND",
+        "letter": "NO HAND/SIGN",
         "confidence": None,
         "scores": [],
-        "features": [],
+        "letters": list(LETTERS),
         "landmarks": []
     }
 
@@ -181,4 +181,4 @@ def preprocess_and_predict_api(image_path: str,
                 reshaped_features
             )[0]
             r = predict_letter(probas)
-            return {**r, "features": features.tolist(), "landmarks": landmarks}
+            return {**r, "letters": list(LETTERS), "landmarks": landmarks}
