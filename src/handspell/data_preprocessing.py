@@ -64,7 +64,8 @@ def image_preprocessing(image_path,
         # Prediction of hand segmentaion
         hand_prediction = model.predict(image_path,
                                         save=save_image,
-                                        save_crop=save_image)
+                                        save_crop=save_image,
+                                       verbose=False)
 
 
         # Output if hand could not detected
@@ -132,6 +133,8 @@ def preprocessing_dataset(folder_path:str,
         new_folder_path = project_path / "data" / "preprocessed" / folder_name
         new_folder_path.mkdir(parents=True, exist_ok=True)
 
+        print(f"Processing Folder: {subfolder.name}")
+
         #Iterate through all files inside  the subfolder
         for image_path in subfolder.iterdir():
 
@@ -144,28 +147,36 @@ def preprocessing_dataset(folder_path:str,
                 continue
 
             images = Path(image_path).name
-            print(f"Processing: {images} in folder: {subfolder.name}")
 
             #Call image_preprocessing for every image
-            resized_img = image_preprocessing(str(image_path), output_size, model)
+            resized_img = image_preprocessing(str(image_path), output_size, model, save_image=False)
+
+            if resized_img is None:
+
+                continue
+
+            # Extract letter from image name
+            label = subfolder.name
+            output_path = os.path.join(new_folder_path, os.path.join(label, images))
 
             #Convert and write image file
             grey_image_uint8 = (resized_img *255).astype(np.uint8)
-            cv2.imwrite(os.path.join(new_folder_path, images), grey_image_uint8)
+            cv2.imwrite(output_path, grey_image_uint8)
 
             # Extract letter from image name
-            label = os.path.splitext(images)
-            label = list(label[0])
+            label = subfolder.name
 
             result=[]
 
             pixel_values = grey_image_uint8.flatten()
 
-            result = {f'pixel{i+1}': pixel for i, pixel in enumerate(pixel_values)}
+            #result = {f'pixel{i+1}': pixel for i, pixel in enumerate(pixel_values)}
 
-            new_row = dict(label=label[0], **result)
+
+            result = {'image_path': output_path}
+
+            new_row = dict(label=label.upper(), **result)
             rows += [new_row]
-        break
 
     df = pd.DataFrame(rows).set_index("label")
     df.to_csv(project_path/ "data" / "preprocessed" / 'processed_training_data.csv')

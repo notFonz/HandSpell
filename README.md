@@ -6,7 +6,8 @@ Provides:
 - Python package to explore, process and train models based on those datasets
 - API to assess the ASL letter from an image
 
-![ASL schematic by Ds13 at English Wikipedia - Transferred from en.wikipedia to Commons., Public Domain, https://commons.wikimedia.org/w/index.php?curid=79729279](img/Asl_alphabet_gallaudet.svg)
+![By Coloringbuddymike - Own work, CC BY-SA 3.0, https://commons.wikimedia.org/w/index.php?curid=24802810](data/.img/Asl-sign-language-coloring-at-coloring-pages-for-kids-boys-dotcom.svg)
+
 
 ## Why?
 Around 70 million deaf people use sign language, yet most hearing people can't
@@ -30,8 +31,7 @@ Original team members:
 # API
 
 Interactive API documentation:
-- Kazim deployment [link](https://handspell-api-77400974703.europe-west1.run.app/docs)
-- Delphine deployment [temporary_link](https://handspell-api-390650046032.europe-west1.run.app/docs)
+- Google Cloud Run deployment [link](https://handspell-api-390650046032.europe-west1.run.app/docs)
 
 - [TODO] Document main API endpoints here
 
@@ -93,6 +93,7 @@ make run_api
 And locally inside a docker image
 
 ```bash
+uv sync --no-dev
 make docker_build_local
 make docker_run_local
 ```
@@ -106,7 +107,16 @@ docker run --rm -v "$(pwd):/work" -w /app --entrypoint .venv/bin/python \
 
 then deploy
 ```bash
+uv sync --no-dev
 make docker_build
 make docker_push
 make docker_deploy
+```
+
+
+# Data download
+
+On max to unrar a folder:
+```bash
+tar -xvf ASLYset.rar
 ```

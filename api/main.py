@@ -1,8 +1,10 @@
+# import faulthandler, sys
+# faulthandler.dump_traceback_later(20, exit=False, file=sys.stderr)
 # Import order matters: torch (pulled in by ultralytics) must be loaded BEFORE
 # tensorflow. In the Linux Docker image, loading TensorFlow first makes YOLO
 # inference crash with "free(): invalid pointer" (both bundle native libraries
 # that clash). Keep this first and don't let an import sorter move it.
-import torch  # noqa: F401  # isort: skip
+# import torch  # noqa: F401  # isort: skip
 
 from fastapi import FastAPI, Request, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
@@ -13,12 +15,14 @@ import aiofiles
 from tempfile import TemporaryDirectory
 from pathlib import Path
 from PIL import Image
-from shutil import rmtree
+from shutil import rmtree, copyfileobj
+import joblib
+from xgboost import XGBClassifier
+import threading
 
-from handspell.data_preprocessing import load_model as load_preprocessing_model
+# from handspell.data_preprocessing import load_model as load_preprocessing_model
 
-from handspell.model import load_model, preprocess_and_predict_api
-
+from handspell.model_landmarks import create_landmarker, preprocess_and_predict_api
 from handspell.text_to_image import text_to_image_dict, text_to_image_path, IMAGES_DIR
 
 """
@@ -27,12 +31,9 @@ from handspell.text_to_image import text_to_image_dict, text_to_image_path, IMAG
     It includes the endpoint for predicting letters from uploaded images.
 """
 
-HAND_DETECTION_MODEL_PATH = os.environ["HAND_DETECTION_MODEL_PATH"]
-LETTER_CLASSIFICATION_MODEL_PATH = os.environ["LETTER_CLASSIFICATION_MODEL_PATH"]
+HAND_LANDMARKER_PATH = os.environ["HAND_LANDMARKER_PATH"]
+ASL_MODEL_LANDMARKS_PATH = os.environ["ASL_MODEL_LANDMARKS_PATH"]
 TEMPORARY_FOLDER = ".temporary/"
-
-print("Hand detection model: ", HAND_DETECTION_MODEL_PATH)
-print("ASL model: ", LETTER_CLASSIFICATION_MODEL_PATH)
 
 def reset_temp_folder():
     temp_folder = Path(TEMPORARY_FOLDER)
@@ -42,14 +43,14 @@ def reset_temp_folder():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Runs before the API accepts requests
-    print(f"Loading model from: {LETTER_CLASSIFICATION_MODEL_PATH}")
 
-    app.state.asl_model = load_model(
-        LETTER_CLASSIFICATION_MODEL_PATH
+    print(f"Loading model from: {HAND_LANDMARKER_PATH}")
+    app.state.hand_model = create_landmarker(
+        HAND_LANDMARKER_PATH, download_if_needed=False
     )
-    app.state.hand_model = load_preprocessing_model(
-        model_path=HAND_DETECTION_MODEL_PATH, download_if_needed=False
-    )
+
+    print(f"Loading ASL model from: {ASL_MODEL_LANDMARKS_PATH}")
+    app.state.asl_model = joblib.load(ASL_MODEL_LANDMARKS_PATH)
 
     print("Models loaded successfully.")
 
@@ -74,6 +75,9 @@ app = FastAPI(lifespan=lifespan)
 def root():
     return {"text": "Welcome to the HandSpell API"}
 
+# Only one request at a time may use the MediaPipe HandLandmarker (it isn't thread-safe).
+# FastAPI runs plain `def` endpoints in a threadpool, so a threading.Lock is needed here.
+predict_lock = threading.Lock()
 
 @app.post("/predict")
 def predict(request: Request, file: UploadFile):
@@ -83,16 +87,18 @@ def predict(request: Request, file: UploadFile):
             Path(temporary_directory) / "handspell_uploaded_temporary_image.png"
         )
 
-        # Open the uploaded image and convert it to RGB before saving it temporarily.
-        with Image.open(file.file) as image:
-            image.convert("RGB").save(image_path)
+        with open(image_path, "wb") as destination:
+            copyfileobj(file.file, destination)
 
-        # Call the preprocess_and_predict_api function with the temporary image path and the loaded models.
-        result = preprocess_and_predict_api(
-            image_path=str(image_path),
-            hand_detection_model=request.app.state.hand_model,
-            letter_classification_model=request.app.state.asl_model,
-        )
+        # Only the landmarker and classifier call needs to be serialized.
+        with predict_lock:
+            # Call the preprocess_and_predict_api function with the temporary image path and the loaded models.
+            result = preprocess_and_predict_api(
+                image_path=str(image_path),
+                # image_path="data/raw_data/A05_notFonz_original/images/Afonso/H0.jpg",
+                hand_landmarker_model=request.app.state.hand_model,
+                letter_classification_model=request.app.state.asl_model,
+            )
 
     # After exiting the context manager, the temporary directory and image are automatically removed.
     return result
@@ -119,7 +125,7 @@ def clear_temp():
 
 
 @app.get("/sign/{letter}")
-def letter_to_image(request: Request, letter: str):
+def letter_to_image(request: Request, letter: str) -> FileResponse:
     # Gets letter as a variable on get and then on the function
     if len(letter) > 1:
 
@@ -137,7 +143,6 @@ def letter_to_image(request: Request, letter: str):
                             detail= f'Pumba does not recognize J and Z since these letters require motion, multiple letters or numbers :D')
     # Use FileResponse to get the image from the path, I don't know if this works on Docker
     else:
-
         image = FileResponse(path_result)
 
     return image
