@@ -8,7 +8,7 @@ from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarker as Pyth
 import os
 from PIL import Image, ImageOps
 
-from joblib import load
+import joblib
 from xgboost import XGBClassifier
 from xgboost.sklearn import XGBClassifier as sklearnXGBClassifier
 
@@ -134,7 +134,7 @@ def get_features(rgb: np.array, landmarker: PythonHandLandmarker):
 
 
 def load_asl_model(model_path: str=ASL_MODEL_LANDMARKS):
-    model = load(model_path)
+    model = joblib.load(model_path)
     return model
 
 def predict_letter(scores: np.ndarray) -> dict:
@@ -143,14 +143,15 @@ def predict_letter(scores: np.ndarray) -> dict:
 
     return {
         "letter": LETTERS[predicted_idx],
-        "confidence": float(scores[predicted_idx])
+        "confidence": float(scores[predicted_idx]),
+        "scores": scores.tolist()
     }
 
 
 def preprocess_and_predict_api(image_path: str,
                                hand_landmarker_model: PythonHandLandmarker,
                                letter_classification_model: sklearnXGBClassifier,
-                           ):
+                           ) -> dict:
     """Predicts a ASL letter (not J or Z) from an image an image from a filepath.
     Accepts jpg, png or jpeg files of any size.
     Expects 'keras' model.
@@ -161,10 +162,13 @@ def preprocess_and_predict_api(image_path: str,
     """
     default_result = {
         "letter": "NO HAND",
-        "confidence": None
+        "confidence": None,
+        "scores": [],
+        "features": [],
+        "landmarks": []
     }
 
-    features, _ = get_features(read_rgb(image_path), hand_landmarker_model)
+    features, landmarks = get_features(read_rgb(image_path), hand_landmarker_model)
     if features is None:
         return default_result
     else:
@@ -177,4 +181,4 @@ def preprocess_and_predict_api(image_path: str,
                 reshaped_features
             )[0]
             r = predict_letter(probas)
-            return r
+            return {**r, "features": features.tolist(), "landmarks": landmarks}
