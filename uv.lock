@@ -865,6 +865,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
     { name = "fastapi" },
+    { name = "ipython" },
     { name = "mediapipe" },
     { name = "numpy" },
     { name = "opencv-contrib-python-headless" },
@@ -898,6 +899,7 @@ dev = [
 requires-dist = [
     { name = "aiofiles", specifier = ">=25.1.0" },
     { name = "fastapi", specifier = ">=0.143.0" },
+    { name = "ipython", specifier = ">=9.17.1" },
     { name = "mediapipe", specifier = ">=1.1.1" },
     { name = "numpy", specifier = ">=2.5.4" },
     { name = "opencv-contrib-python-headless", specifier = ">=5.0.0.93" },

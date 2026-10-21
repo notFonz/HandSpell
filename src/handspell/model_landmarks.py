@@ -17,7 +17,8 @@ ROOT = '../data/dataset/D01_megadataset'
 LETTERS = "ABCDEFGHIKLMNOPQRSTUVWXY"
 LABEL_MAP = {letter: index for index, letter in enumerate(LETTERS)}
 
-HAND_MODEL = os.environ["HAND_LANDMARKER_PATH"]
+# HAND_MODEL = os.environ["HAND_LANDMARKER_PATH"]
+HAND_MODEL = "../models/hand_landmarker.task"
 
 MODEL_URL = (
     "https://storage.googleapis.com/mediapipe-models/"
@@ -142,7 +143,7 @@ def predict_letter(scores: np.ndarray) -> dict:
     predicted_idx = int(np.argmax(scores))
 
     return {
-        "letter": chr(predicted_idx + ord("A")),
+        "letter": LETTERS[predicted_idx],
         "confidence": float(scores[predicted_idx])
     }
 
