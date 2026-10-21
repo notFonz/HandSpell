@@ -16,6 +16,8 @@ from tqdm.auto import tqdm
 from handspell.model_landmarks import create_landmarker, read_rgb, get_features
 from handspell.model_landmarks import find_images
 
+from tqdm.auto import tqdm
+
 def extract_features(paths):
     # NaN rows preserve failures in their original positions.
     features = np.full((len(paths), 63), np.nan, dtype=np.float32)

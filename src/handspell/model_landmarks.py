@@ -17,8 +17,7 @@ ROOT = '../data/dataset/D01_megadataset'
 LETTERS = "ABCDEFGHIKLMNOPQRSTUVWXY"
 LABEL_MAP = {letter: index for index, letter in enumerate(LETTERS)}
 
-# HAND_MODEL = os.environ["HAND_LANDMARKER_PATH"]
-HAND_MODEL = "../models/hand_landmarker.task"
+HAND_MODEL = os.environ["HAND_LANDMARKER_PATH"]
 
 MODEL_URL = (
     "https://storage.googleapis.com/mediapipe-models/"
