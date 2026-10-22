@@ -13,9 +13,11 @@ from mediapipe import tasks
 from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarker as PythonHandLandmarker
 
 
+(0.1, 0.4)
 
 LETTERS = "ABCDEFGHIKLMNOPQRSTUVWXY"
 LABEL_MAP = {letter: index for index, letter in enumerate(LETTERS)}
+INV_LABEL_MAP = {index: letter for index, letter in enumerate(LETTERS)}
 
 HAND_MODEL = os.environ["HAND_LANDMARKER_PATH"]
 
@@ -25,7 +27,6 @@ MODEL_URL = (
     "hand_landmarker.task"
 )
 
-ASL_MODEL_LANDMARKS = os.environ["ASL_MODEL_LANDMARKS_PATH"]
 
 HAND_CONNECTIONS = [
     (0, 1), (1, 2), (2, 3), (3, 4),          # thumb
@@ -43,6 +44,10 @@ def create_landmarker(hand_model_path: str=HAND_MODEL,
                       running_mode: tasks.vision.RunningMode=tasks.vision.RunningMode.IMAGE,
                       download_if_needed: bool=True
                       ) -> PythonHandLandmarker:
+    """Create instance of MediaPipe HandLandmarker.
+    Starts with palm detection and if successful, 21 hand landmarks coordinates.
+    """
+
     if download_if_needed:
         if not Path(hand_model_path).exists():
             urlretrieve(MODEL_URL, hand_model_path)
@@ -63,33 +68,9 @@ def create_landmarker(hand_model_path: str=HAND_MODEL,
     return tasks.vision.HandLandmarker.create_from_options(options)
 
 
-# def read_rgb(path: str):
-#     with Image.open(path) as original:
-#         oriented = ImageOps.exif_transpose(original).convert("RGBA")
-#         background = Image.new(
-#             "RGBA", oriented.size, (255, 255, 255, 255)
-#         )
-#         image = Image.alpha_composite(
-#             background, oriented
-#         ).convert("RGB")
-
-#         # Limit large images while preserving aspect ratio.
-#         image.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
-
-#         return np.array(image)
-
-
-# def get_image_rgb(image_path):
-#     rgb = read_rgb(image_path)
-#     image = mpImage(
-#         image_format=mpImageFormat.SRGB,
-#         data=np.ascontiguousarray(rgb),
-#     )
-#     return image, rgb
-
-
-def get_features(image_path, landmarker: PythonHandLandmarker):
-    # image, rgb_image = get_image_rgb(image_path)
+def get_features(image_path: str, landmarker: PythonHandLandmarker):
+    """Get 21 hand landmarks coordinates from an image path.
+    """
 
     image = mpImage.create_from_file(image_path)
     rgb_image = image.numpy_view()
@@ -97,7 +78,7 @@ def get_features(image_path, landmarker: PythonHandLandmarker):
     result = landmarker.detect(image)
 
     if not result.hand_landmarks:
-        return None, None
+        return None, None, None
 
     points = np.array(
         [[point.x, point.y, point.z]
@@ -116,7 +97,7 @@ def get_features(image_path, landmarker: PythonHandLandmarker):
     scale = np.linalg.norm(relative[9])
 
     if scale < 1e-6:
-        return None, None
+        return None, None, None
 
     features = (relative / scale).reshape(-1)
 
@@ -143,54 +124,3 @@ def plot_landmarks(rgb_image: np.array, landmarks: list) -> plt.figure:
 
     ax.set_axis_off()
     return f
-
-
-def load_asl_model(model_path: str=ASL_MODEL_LANDMARKS):
-    model = joblib.load(model_path)
-    return model
-
-def predict_letter(scores: np.ndarray) -> dict:
-
-    predicted_idx = int(np.argmax(scores))
-
-    return {
-        "letter": LETTERS[predicted_idx],
-        "confidence": float(scores[predicted_idx]),
-        "scores": scores.tolist()
-    }
-
-
-def preprocess_and_predict_api(image_path: str,
-                               hand_landmarker_model: PythonHandLandmarker,
-                               letter_classification_model: sklearnXGBClassifier,
-                           ) -> dict:
-    """Predicts a ASL letter (not J or Z) from an image an image from a filepath.
-    Accepts jpg, png or jpeg files of any size.
-    Expects 'keras' model.
-
-    Returns:
-     - Dictionary with the most probable letter and its probability
-     - Array with the probabilities for each of the letters
-    """
-    default_result = {
-        "letter": "NO HAND/SIGN",
-        "confidence": None,
-        "scores": [],
-        "letters": list(LETTERS),
-        "landmarks": []
-    }
-
-    features, landmarks = get_features(read_rgb(image_path), hand_landmarker_model)
-    if features is None:
-        return default_result
-    else:
-        reshaped_features = np.expand_dims(features, 0)
-        usable = np.isfinite(reshaped_features).all()
-        if not usable:
-            return default_result
-        else:
-            probas = letter_classification_model.predict_proba(
-                reshaped_features
-            )[0]
-            r = predict_letter(probas)
-            return {**r, "letters": list(LETTERS), "landmarks": landmarks}

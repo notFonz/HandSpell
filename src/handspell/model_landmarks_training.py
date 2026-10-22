@@ -1,27 +1,25 @@
 from pathlib import Path, PosixPath
 from urllib.request import urlretrieve
-
 import numpy as np
 from mediapipe import Image as mpImage, ImageFormat as mpImageFormat
 from mediapipe import tasks
 from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarker as PythonHandLandmarker
 import os
-from PIL import Image, ImageOps
 import pandas as pd
-
+from PIL import Image, ImageOps
 from joblib import load
 from xgboost import XGBClassifier
 from xgboost.sklearn import XGBClassifier as sklearnXGBClassifier
+from tqdm.auto import tqdm
 from sklearn.metrics import accuracy_score, classification_report
-from tqdm.auto import tqdm
 
-from handspell.model_landmarks import create_landmarker, read_rgb, get_features, LETTERS, LABEL_MAP
+from handspell.model_landmarks import HAND_MODEL, create_landmarker, get_features, LETTERS, LABEL_MAP
 
-from tqdm.auto import tqdm
 
-ROOT = '../data/dataset/D01_megadataset'
 
-def find_images(root: str=ROOT):
+DATA_DIR = '../data/dataset/D01_megadataset'
+
+def find_images(root: str=DATA_DIR):
     root = Path(root)
 
     if not root.is_dir():
@@ -47,16 +45,15 @@ def find_images(root: str=ROOT):
 
     return paths, np.array(labels, dtype=np.int64)
 
-def extract_features(paths):
+def extract_features(paths, hand_model_path=HAND_MODEL):
     # NaN rows preserve failures in their original positions.
     features = np.full((len(paths), 63), np.nan, dtype=np.float32)
     failures = []
 
-    with create_landmarker() as landmarker:
+    with create_landmarker(hand_model_path=hand_model_path) as landmarker:
         for index, path in enumerate(tqdm(paths)):
             try:
-                rgb = read_rgb(path)
-                vector, _ = get_features(rgb, landmarker)
+                vector, _, _ = get_features(str(path), landmarker)
 
                 if vector is None:
                     failures.append((str(path), "No usable hand landmarks"))
@@ -93,6 +90,20 @@ def get_features_df(features, labels, paths):
     # Add image path
     features_df["image_path"] = [str(p) for p in paths]
 
+    # No hand detected
+    features_df["no_hand"] = features_df['0'].isna()
+
+    # Letter
+    features_df["letter"] = features_df["letter_index"].replace(INV_LABEL_MAP)
+
+    # Dataset had users
+    features_df["had_user"] = (~features_df["user"].isna())
+
+    # Image size
+    features_df["image_shape"] = features_df["image_path"].apply(lambda x: mpImage.create_from_file(x).numpy_view().shape)
+    features_df["image_width"] = features_df["image_shape"].apply(lambda x: x[0])
+    features_df["image_height"] = features_df["image_shape"].apply(lambda x: x[1])
+
     return features_df
 
 
@@ -126,7 +137,7 @@ if __name__ == "__main__":
     landmarker = create_landmarker(
         hand_model_path="models/hand_landmarker_latest.task",
         min_hand_detection_confidence=0.1,
-        min_hand_presence_confidence=0.1
+        min_hand_presence_confidence=0.4
     )
 
     paths, labels = find_images("data/dataset/D01_megadataset")
@@ -135,4 +146,4 @@ if __name__ == "__main__":
 
     features_df = get_features_df(features, labels, paths)
 
-    features_df.to_csv("data/preprocessed/handlandmarks_d01megadataset_v2.csv")
+    features_df.to_csv("data/preprocessed/handlandmarks_d01megadataset_01_04.csv")
