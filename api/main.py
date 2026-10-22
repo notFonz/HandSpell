@@ -22,7 +22,8 @@ import threading
 
 # from handspell.data_preprocessing import load_model as load_preprocessing_model
 
-from handspell.model_landmarks import create_landmarker, preprocess_and_predict_api
+from handspell.model_landmarks import create_landmarker
+from handspell.api_helper_functions import preprocess_and_predict_api
 from handspell.text_to_image import text_to_image_dict, text_to_image_path, IMAGES_DIR
 
 """
