@@ -59,18 +59,23 @@ def model_evaluation(features_df: pd.DataFrame,
             labels=np.arange(25),
         )
 
-        f1, ax = plt.subplots(figsize=(8, 8))
+        f1, ax = subplots(figsize=(8, 8))
 
-        ConfusionMatrixDisplay(
+        disp = ConfusionMatrixDisplay(
             confusion_matrix=matrix,
             display_labels=list(LETTERS)+["NO HAND"],
-        ).plot(
+        )
+        disp.plot(
             ax=ax,
             cmap="Blues",
             values_format="d",
             xticks_rotation=90,
             colorbar=False,
         )
+        # Hide the "0" labels
+        for i, j in zip(*np.nonzero(matrix == 0)):
+            disp.text_[i, j].set_visible(False)
+
 
         matrix_with_hands = confusion_matrix(
             y_true_with_hands,
@@ -82,17 +87,20 @@ def model_evaluation(features_df: pd.DataFrame,
 
         f2, ax = subplots(figsize=(8, 8))
 
-        ConfusionMatrixDisplay(
+        disp=ConfusionMatrixDisplay(
             confusion_matrix=matrix_with_hands,
             display_labels=list(LETTERS),
-        ).plot(
+        )
+        disp.plot(
             ax=ax,
             cmap="Blues",
             values_format="d",
             xticks_rotation=90,
             colorbar=False,
         )
-        ax.set_title("ASL Confusion Matrix (Detected Hands)")
+        # Hide the "0" labels
+        for i, j in zip(*np.nonzero(matrix_with_hands == 0)):
+            disp.text_[i, j].set_visible(False)
 
         # ax.set_title("MediaPipe + XGBoost — MegaDataset Users Test Set ")
         f2.set_tight_layout(True)
