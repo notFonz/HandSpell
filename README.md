@@ -33,15 +33,67 @@ Original team members:
 Interactive API documentation:
 - Google Cloud Run deployment [link](https://handspell-api-390650046032.europe-west1.run.app/docs)
 
-- [TODO] Document main API endpoints here
+- Prediction
 
+      Method: POST
+      Endpoint: /predict
+      Local URL: http://localhost:8080/predict
+      Purpose: Receives hand landmark coordinates and predicts the corresponding hand sign language letter.
+
+      Method: POST
+      Endpoint: /predict_and_save_temp
+      Local URL: http://localhost:8080/predict_and_save_temp
+      Purpose: Predicts the corresponding hand sign language letter from MediaPipe hand landmark coordinates using a trained XGBoost classifier and saves the prediction temporarily.
+
+- Delete
+
+      Method: DELETE
+      Endpoint: /clear_temp
+      Local URL: http://localhost:8080/clear_temp
+      Purpose: Delete temporary files.
+
+- Return Image
+
+      Method: GET
+      Endpoint: /sign/{letter}
+      Local URL: http://localhost:8080/sign/{Letter}
+      Purpose: Return image based on the given letter
 
 # Usage
-- [TODO] Document main functionalities of the package here
+
+HandSpell provides the following core functionalities:
+
+- Hand Detection: Detects hands in images using MediaPipe.
+
+- Landmark Extraction: Extracts the coordinates of 21 hand landmarks to represent hand poses as numerical features.
+
+- Sign Language Classification: Uses a trained XGBoost classifier to predict the corresponding sign language letter based on the extracted hand landmarks.
+
+- API Integration: Provides access to prediction functionality through a REST API.
 
 
 # Setup instructions
-- [ToDo] Document here for users who want to setup the package locally
+
+## Prerequisites
+
+Make sure the following tools are installed:
+
+Python (3.12.9)
+Git (windows: sudo apt-get install git, macOS: brew install git)
+uv, a Python package and project manager (pip install uv)
+
+## 1. Get the project
+
+Clone the repository and navigate to the project directory:
+
+git clone notFonz/HandSpell
+cd HandSpell
+
+## 2. Install dependencies
+
+Install the project dependencies using uv:
+
+uv sync
 
 ## Dockerization
 
