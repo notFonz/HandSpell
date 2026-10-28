@@ -18,14 +18,22 @@ We want to build a bridge, one letter at a time.
 
 Originally an educational group project to practice Data Science & AI skills.
 
+
+Project [presentation](
+https://docs.google.com/presentation/d/1Xz8Q6KtlDj0mV3MGL5ygtARrU_AmtbRg9EsATKX838w/edit?usp=sharing)
+
+
+
+Original team members:
+- Afonso Silva - [LinkedIn](https://www.linkedin.com/in/notfonz/)
+- Delphine Pessoa - [LinkedIn](https://www.linkedin.com/in/delphine-pessoa/)
+- Maximilian Greger - [LinkedIn](https://www.linkedin.com/in/maximilian-greger-77595b289/)
+- Kazim Hussain Mohammed - [LinkedIn](https://www.linkedin.com/in/kazim-mohammed-a7316856/)
+
 Pitched project [presentation](
 https://docs.google.com/presentation/d/1jcQMq_tmHvUgpGdeSIOcO710AYkrgIvgbfjN2BN1O7g/edit?slide=id.p1#slide=id.p1) by Afonso Silva in October 2026.
 
-Original team members:
-- Afonso Silva - [LinkedIn]
-- Delphine Pessoa - [LinkedIn](https://www.linkedin.com/in/delphine-pessoa/)
-- Maximilian Greger - [LinkedIn](https://www.linkedin.com/in/maximilian-greger-77595b289/)
-- Kazim Hussain Mohammed - [LinkedIn]
+
 
 
 # API
