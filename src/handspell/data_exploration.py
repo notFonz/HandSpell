@@ -32,8 +32,12 @@ def print_dataset_infos(infos_df):
     min_channels = infos_df["channels"].min()
     max_channels = infos_df["channels"].min()
 
+    labels = list(infos_df["letter"].unique())
+    n_labels = len(labels)
+
     print(f"Dataset: {infos_df["dataset"].values[0]}")
     print(f"- {n_images} images")
+    print(f"- {n_labels} labels ({sorted(labels)})")
     if n_people is not None:
         print(f"- {n_people} different people")
     if (min_width == max_width) and (min_height == max_height):
@@ -132,6 +136,7 @@ def save_as_images_a01(dataset_label=A01_LABEL):
         letter_folder = "../" + A01_IMAGE_PATH.format(
             dataset_label=dataset_label,
             train_or_test="test",
+            label=r["label"],
             letter=letter)
 
         os.makedirs(letter_folder,exist_ok=True)
@@ -170,6 +175,48 @@ def get_a01_dataset_infos(dataset_label=A01_LABEL, save=True):
 
     return dataset_infos_df, dataset_path
 
+
+########################################
+#                                      #
+#      A02 DATASET FUNCTIONS           #
+#                                      #
+########################################
+
+A02_LABEL = "A02_kaggle_ahmedkhanak"
+def get_a02_dataset_infos(dataset_label=A02_LABEL, save=True):
+    dataset_path = os.path.join("..","data","raw_data",dataset_label,"Gesture Image Data")
+    rows = []
+    exceptions = []
+    for label_folder in list(os.listdir(dataset_path)):
+        path1 = os.path.join(dataset_path, label_folder)
+        try:
+            folder_files = os.listdir(path1)
+        except:
+            exceptions += [path1]
+            continue
+        for f in list(folder_files):
+            path2 = os.path.join(dataset_path, label_folder, f)
+            try:
+                img_props = get_image_size_and_channels(path2)
+                label = label_folder
+                letter = label_folder if label_folder in INDEX_TO_LETTER.values() else None
+                rows += [dict(dataset=dataset_label,
+                                label=label,
+                                letter=letter,
+                                image_name=f,
+                                **img_props,
+                                image_path=path2
+                        )]
+            except:
+                exceptions += [path2]
+    dataset_description_df = pd.DataFrame(rows)
+
+    if save:
+        path3 = os.path.join("..","data","raw_data",dataset_label, "dataset_infos.csv")
+        print(f"Saving Data Description: {path3}")
+        dataset_description_df.to_csv(path3, sep="\t")
+
+    return dataset_description_df, dataset_path, exceptions
 
 ########################################
 #                                      #

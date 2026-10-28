@@ -22,10 +22,10 @@ Pitched project [presentation](
 https://docs.google.com/presentation/d/1jcQMq_tmHvUgpGdeSIOcO710AYkrgIvgbfjN2BN1O7g/edit?slide=id.p1#slide=id.p1) by Afonso Silva in October 2026.
 
 Original team members:
-- Afonso Silva - [LinkedIn]
+- Afonso Silva - [LinkedIn](https://www.linkedin.com/in/notfonz/)
 - Delphine Pessoa - [LinkedIn](https://www.linkedin.com/in/delphine-pessoa/)
 - Maximilian Greger - [LinkedIn](https://www.linkedin.com/in/maximilian-greger-77595b289/)
-- Kazim Hussain Mohammed - [LinkedIn]
+- Kazim Hussain Mohammed - [LinkedIn](https://www.linkedin.com/in/kazim-mohammed-a7316856/)
 
 
 # API

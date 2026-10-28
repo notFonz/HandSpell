@@ -3,10 +3,13 @@ Downloaded zip from [Sign Language MNIST](https://www.kaggle.com/datasets/datamu
 
 ### Sign Language MNIST ([link](https://www.kaggle.com/datasets/datamunge/sign-language-mnist?select=sign_mnist_test))
 
-- 28x28 grey-scaled images (1 channel) already flattened
-- 24 classes of letters (excluding J and Z which require motion)
-- 27,455 + 7,172 images (pre-split into train and test)
-- result of applying a pre-processing pipeline to 1,704 color images (3 channels) - based on ImageMagick:
+Dataset: A01_kaggle_aslmnist
+- 34627 images (pre-split into 27,455 train & 7,172 test)
+- 24 labels (['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y'])
+- images 28x28 pixels
+- All greyscale images (1 channel)
+
+Result of applying a pre-processing pipeline to 1,704 color images, see `B01_original_aslmnist` - based on ImageMagick:
   - crop hands only
   - grey-scale
   - resize
