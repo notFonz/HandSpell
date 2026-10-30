@@ -5,15 +5,16 @@ import pandas as pd
 from keras.preprocessing.image import img_to_array, load_img
 from tensorflow.keras.utils import save_img
 import os
+from PIL import Image
 
 
 from handspell.utils import INDEX_TO_LETTER
+from handspell.dataset import IMG_EXT, LabelMode
 
 
 def get_image_size_and_channels(image_path):
-    img = load_img(image_path)
-    width, height = img._size
-    channels = img.layers
+    arr = np.asarray(Image.open(image_path).convert("RGB"), dtype="float32")
+    width, height, channels = arr.shape
     return {"width": width,
             "height": height,
             "channels": channels
@@ -58,6 +59,7 @@ def print_dataset_infos(infos_df):
 def get_image_from_info_row(row):
     img = load_img(row["image_path"])
     return img
+
 
 def plot_example_images(dataset_df, get_image_from_row,
                         n_examples=5, figsize=(24, 10)):
@@ -110,13 +112,13 @@ def get_image_from_row_a01(row, plot=True):
 
 # Save samples as images in folders per letter
 def save_as_images_a01(dataset_label=A01_LABEL):
-    train_df = pd.read_csv(f"../data/raw_data/{dataset_label}/sign_mnist_train.csv")
+    train_df = pd.read_csv(f"data/raw_data/{dataset_label}/sign_mnist_train.csv")
     train_samples = []
     for i, r in train_df.iterrows():
         letter = INDEX_TO_LETTER[r["label"]]
         img_2828 = get_image_from_row_a01(r, plot=False)
 
-        letter_folder = "../" + A01_IMAGE_PATH.format(
+        letter_folder = A01_IMAGE_PATH.format(
             dataset_label=dataset_label,
             train_or_test="train",
             letter=letter)
@@ -127,13 +129,13 @@ def save_as_images_a01(dataset_label=A01_LABEL):
 
         train_samples += [{"letter": letter, "image_path": image_path}]
 
-    test_df = pd.read_csv(f"../data/raw_data/{dataset_label}/sign_mnist_test.csv")
+    test_df = pd.read_csv(f"data/raw_data/{dataset_label}/sign_mnist_test.csv")
     test_samples = []
     for i, r in test_df.iterrows():
         letter = INDEX_TO_LETTER[r["label"]]
         img_2828 = get_image_from_row_a01(r, plot=False)
 
-        letter_folder = "../" + A01_IMAGE_PATH.format(
+        letter_folder = A01_IMAGE_PATH.format(
             dataset_label=dataset_label,
             train_or_test="test",
             label=r["label"],
@@ -151,7 +153,7 @@ def save_as_images_a01(dataset_label=A01_LABEL):
 
 # Get | dataset | letter | width | height | channels | image_path | train  or test
 def get_a01_dataset_infos(dataset_label=A01_LABEL, save=True):
-    dataset_path = "../data/raw_data/" + dataset_label
+    dataset_path = "data/raw_data/" + dataset_label
 
     train_samples, test_samples = save_as_images_a01()
 
@@ -178,85 +180,167 @@ def get_a01_dataset_infos(dataset_label=A01_LABEL, save=True):
 
 ########################################
 #                                      #
-#      A02 DATASET FUNCTIONS           #
+#      OTHER DATASET FUNCTIONS         #
 #                                      #
 ########################################
 
-A02_LABEL = "A02_kaggle_ahmedkhanak"
-def get_a02_dataset_infos(dataset_label=A02_LABEL, save=True):
-    dataset_path = os.path.join("..","data","raw_data",dataset_label,"Gesture Image Data")
-    rows = []
-    exceptions = []
-    for label_folder in list(os.listdir(dataset_path)):
-        path1 = os.path.join(dataset_path, label_folder)
-        try:
-            folder_files = os.listdir(path1)
-        except:
-            exceptions += [path1]
-            continue
-        for f in list(folder_files):
-            path2 = os.path.join(dataset_path, label_folder, f)
-            try:
-                img_props = get_image_size_and_channels(path2)
-                label = label_folder
-                letter = label_folder if label_folder in INDEX_TO_LETTER.values() else None
-                rows += [dict(dataset=dataset_label,
-                                label=label,
-                                letter=letter,
-                                image_name=f,
-                                **img_props,
-                                image_path=path2
-                        )]
-            except:
-                exceptions += [path2]
-    dataset_description_df = pd.DataFrame(rows)
 
-    if save:
-        path3 = os.path.join("..","data","raw_data",dataset_label, "dataset_infos.csv")
-        print(f"Saving Data Description: {path3}")
-        dataset_description_df.to_csv(path3, sep="\t")
+def crawl_letter_dirs(root_path, add_infos={}):
+    """Analyse images from a folder whose subfolders are labels (A, b, ...)."""
 
-    return dataset_description_df, dataset_path, exceptions
+    infos = []
+    for d in sorted(os.listdir(root_path)):
+        path = os.path.join(root_path, d)
 
-########################################
-#                                      #
-#      B01 DATASET FUNCTIONS           #
-#                                      #
-########################################
+        if os.path.isdir(path):
+            label = d
+            label_folder = path
+            print(f"Sub-Folder: {label_folder}")
+            for f in os.listdir(path):
+                if f.lower().endswith(IMG_EXT):
+                    image_path = os.path.join(label_folder, f)
 
-B01_LABEL = "B01_original_aslmnist"
+                    # Get and save image information
+                    img_props = get_image_size_and_channels(image_path)
 
-# Get | dataset | person | label | image_name | width | height | channels | image_path |
-def get_b01_dataset_infos(dataset_label=B01_LABEL, save=True):
-    dataset_path = "../data/raw_data/" + dataset_label
-    rows = []
-    exceptions = []
-    for user_folder in os.listdir(dataset_path):
-        try:
-            folder_files = os.listdir(f"{dataset_path}/{user_folder}")
-        except:
-            exceptions += [f"{dataset_path}/{user_folder}"]
-            continue
-        for f in folder_files:
-            try:
-                img_props = get_image_size_and_channels(
-                    dataset_path+"/"+user_folder+"/"+f
-                )
-                letter = f[0]
-                rows += [dict(dataset=dataset_label,
-                                person=user_folder,
-                                letter=letter,
-                                image_name=f,
-                                **img_props,
-                                image_path=f"{dataset_path}/{user_folder}/{f}",
-                                hand_cropped=False,
-                                preprocessed=False
-                        )]
-            except:
-                exceptions += [f"{dataset_path}/{user_folder}/{f}"]
-    dataset_description_df = pd.DataFrame(rows)
+                    image_infos = {
+                        **add_infos,
+                        "label": label,
+                        "image_name": f,
+                        **img_props,
+                        "image_path": image_path
+                    }
 
-    if save:
-        dataset_description_df.to_csv(dataset_path+"/dataset_infos.csv", sep="\t")
+                    infos += [image_infos]
 
-    return dataset_description_df, dataset_path
+    return infos
+
+
+def crawl_flat_folder(root_path, add_infos={}):
+    """Analyse images from a folder full of images whose first character in the image name is their
+    label (A_948.png, b_copy1.jpg, ...)."""
+
+    # Label is first character of the file name
+    infos = []
+    for f in os.listdir(root_path):
+
+        if f.lower().endswith(IMG_EXT) and f[0] != '.':
+            label = f[0]
+            image_path = os.path.join(root_path, f)
+
+            # Get and save image information
+            img_props = get_image_size_and_channels(image_path)
+
+            image_infos = {
+                **add_infos,
+                "label": label,
+                "image_name": f,
+                **img_props,
+                "image_path": image_path
+            }
+
+            infos += [image_infos]
+
+    return infos
+
+
+def crawl_dataset(original_data_label:str,
+                  raw_data_folder_path:str,
+                  user_folders=False,
+                  label_mode=LabelMode.FROM_SUBFOLDER,
+                  save_path=""):
+
+    print(f"Dataset folder: {raw_data_folder_path}")
+
+    crawl_function = crawl_letter_dirs if (
+        label_mode == LabelMode.FROM_SUBFOLDER) else crawl_flat_folder
+
+    base_infos = {"dataset": original_data_label}
+
+    infos = []
+    if user_folders:
+        for user in sorted(os.listdir(raw_data_folder_path)):
+            path = os.path.join(raw_data_folder_path, user)
+            if os.path.isdir(path):
+                user_folder = path
+                print(f"User Folder: {user_folder}")
+                user_infos = {**base_infos,
+                              "user": user}
+                image_infos = crawl_function(root_path=user_folder,
+                                             add_infos=user_infos)
+
+
+                infos += image_infos
+    else:
+        infos += crawl_function(root_path=raw_data_folder_path,
+                                add_infos=base_infos)
+
+    infos = pd.DataFrame(infos)
+
+    if save_path:
+        save_path = os.path.join(save_path, "dataset_infos.csv")
+        print(f"Dataset {original_data_label} infos saved to {save_path}")
+        infos.to_csv(save_path)
+
+    return infos
+
+
+if __name__ == "__main__":
+    # raw_dataset_label = "A01_kaggle_aslmnist"
+    # print(raw_dataset_label)
+    # get_a01_dataset_infos(dataset_label=raw_dataset_label, save=True)
+
+    raw_dataset_label = "A02_kaggle_ahmedkhanak"
+    raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "Gesture Image Data")
+    print(raw_dataset_label)
+    c = crawl_dataset(
+            original_data_label=raw_dataset_label,
+            raw_data_folder_path=raw_dataset_root_folder,
+            user_folders=False,
+            label_mode=LabelMode.FROM_SUBFOLDER,
+            save_path=os.path.join("data", "raw_data", raw_dataset_label)
+    )
+
+    # raw_dataset_label = "A03_kaggle_asl"
+    # raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "American")
+    # print(raw_dataset_label)
+    # c = crawl_dataset(
+    #         original_data_label=raw_dataset_label,
+    #         raw_data_folder_path=raw_dataset_root_folder,
+    #         user_folders=False,
+    #         label_mode=LabelMode.FROM_SUBFOLDER,
+    #         save_path=os.path.join("data", "raw_data", raw_dataset_label)
+    # )
+
+    # raw_dataset_label = "A04_mandalay_aslhg"
+    # raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "ASL_HG_36000", "asl_dataset")
+    # print(raw_dataset_label)
+    # c = crawl_dataset(
+    #         original_data_label=raw_dataset_label,
+    #         raw_data_folder_path=raw_dataset_root_folder,
+    #         user_folders=True,
+    #         label_mode=LabelMode.FROM_FILE_FIRST_LETTER,
+    #         save_path=os.path.join("data", "raw_data", raw_dataset_label)
+    # )
+
+    # raw_dataset_label = "B01_original_aslmnist"
+    # raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "Dataset")
+    # print(raw_dataset_label)
+    # c = crawl_dataset(
+    #         original_data_label=raw_dataset_label,
+    #         raw_data_folder_path=raw_dataset_root_folder,
+    #         user_folders=True,
+    #         label_mode=LabelMode.FROM_FILE_FIRST_LETTER,
+    #         save_path=os.path.join("data", "raw_data", raw_dataset_label)
+    # )
+
+    # raw_dataset_label = "B02_aslyset"
+    # raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "ASLYset", "images")
+    # print(raw_dataset_label)
+    # c = crawl_dataset(
+    #     original_data_label=raw_dataset_label,
+    #     raw_data_folder_path=raw_dataset_root_folder,
+    #     user_folders=True,
+    #     label_mode=LabelMode.FROM_SUBFOLDER,
+    #     save_path=os.path.join("data", "raw_data", raw_dataset_label)
+    # )

@@ -21,6 +21,8 @@ Originally an educational group project to practice Data Science & AI skills.
 Pitched project [presentation](
 https://docs.google.com/presentation/d/1jcQMq_tmHvUgpGdeSIOcO710AYkrgIvgbfjN2BN1O7g/edit?slide=id.p1#slide=id.p1) by Afonso Silva in October 2026.
 
+
+
 Original team members:
 - Afonso Silva - [LinkedIn](https://www.linkedin.com/in/notfonz/)
 - Delphine Pessoa - [LinkedIn](https://www.linkedin.com/in/delphine-pessoa/)
