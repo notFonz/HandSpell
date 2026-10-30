@@ -286,9 +286,9 @@ def crawl_dataset(original_data_label:str,
 
 
 if __name__ == "__main__":
-    # raw_dataset_label = "A01_kaggle_aslmnist"
-    # print(raw_dataset_label)
-    # get_a01_dataset_infos(dataset_label=raw_dataset_label, save=True)
+    raw_dataset_label = "A01_kaggle_aslmnist"
+    print(raw_dataset_label)
+    get_a01_dataset_infos(dataset_label=raw_dataset_label, save=True)
 
     raw_dataset_label = "A02_kaggle_ahmedkhanak"
     raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "Gesture Image Data")
@@ -301,46 +301,46 @@ if __name__ == "__main__":
             save_path=os.path.join("data", "raw_data", raw_dataset_label)
     )
 
-    # raw_dataset_label = "A03_kaggle_asl"
-    # raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "American")
-    # print(raw_dataset_label)
-    # c = crawl_dataset(
-    #         original_data_label=raw_dataset_label,
-    #         raw_data_folder_path=raw_dataset_root_folder,
-    #         user_folders=False,
-    #         label_mode=LabelMode.FROM_SUBFOLDER,
-    #         save_path=os.path.join("data", "raw_data", raw_dataset_label)
-    # )
+    raw_dataset_label = "A03_kaggle_asl"
+    raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "American")
+    print(raw_dataset_label)
+    c = crawl_dataset(
+            original_data_label=raw_dataset_label,
+            raw_data_folder_path=raw_dataset_root_folder,
+            user_folders=False,
+            label_mode=LabelMode.FROM_SUBFOLDER,
+            save_path=os.path.join("data", "raw_data", raw_dataset_label)
+    )
 
-    # raw_dataset_label = "A04_mandalay_aslhg"
-    # raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "ASL_HG_36000", "asl_dataset")
-    # print(raw_dataset_label)
-    # c = crawl_dataset(
-    #         original_data_label=raw_dataset_label,
-    #         raw_data_folder_path=raw_dataset_root_folder,
-    #         user_folders=True,
-    #         label_mode=LabelMode.FROM_FILE_FIRST_LETTER,
-    #         save_path=os.path.join("data", "raw_data", raw_dataset_label)
-    # )
+    raw_dataset_label = "A04_mandalay_aslhg"
+    raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "ASL_HG_36000", "asl_dataset")
+    print(raw_dataset_label)
+    c = crawl_dataset(
+            original_data_label=raw_dataset_label,
+            raw_data_folder_path=raw_dataset_root_folder,
+            user_folders=True,
+            label_mode=LabelMode.FROM_FILE_FIRST_LETTER,
+            save_path=os.path.join("data", "raw_data", raw_dataset_label)
+    )
 
-    # raw_dataset_label = "B01_original_aslmnist"
-    # raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "Dataset")
-    # print(raw_dataset_label)
-    # c = crawl_dataset(
-    #         original_data_label=raw_dataset_label,
-    #         raw_data_folder_path=raw_dataset_root_folder,
-    #         user_folders=True,
-    #         label_mode=LabelMode.FROM_FILE_FIRST_LETTER,
-    #         save_path=os.path.join("data", "raw_data", raw_dataset_label)
-    # )
+    raw_dataset_label = "B01_original_aslmnist"
+    raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "Dataset")
+    print(raw_dataset_label)
+    c = crawl_dataset(
+            original_data_label=raw_dataset_label,
+            raw_data_folder_path=raw_dataset_root_folder,
+            user_folders=True,
+            label_mode=LabelMode.FROM_FILE_FIRST_LETTER,
+            save_path=os.path.join("data", "raw_data", raw_dataset_label)
+    )
 
-    # raw_dataset_label = "B02_aslyset"
-    # raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "ASLYset", "images")
-    # print(raw_dataset_label)
-    # c = crawl_dataset(
-    #     original_data_label=raw_dataset_label,
-    #     raw_data_folder_path=raw_dataset_root_folder,
-    #     user_folders=True,
-    #     label_mode=LabelMode.FROM_SUBFOLDER,
-    #     save_path=os.path.join("data", "raw_data", raw_dataset_label)
-    # )
+    raw_dataset_label = "B02_aslyset"
+    raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "ASLYset", "images")
+    print(raw_dataset_label)
+    c = crawl_dataset(
+        original_data_label=raw_dataset_label,
+        raw_data_folder_path=raw_dataset_root_folder,
+        user_folders=True,
+        label_mode=LabelMode.FROM_SUBFOLDER,
+        save_path=os.path.join("data", "raw_data", raw_dataset_label)
+    )
