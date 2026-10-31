@@ -10,20 +10,17 @@ from PIL import Image
 
 from handspell.utils import INDEX_TO_LETTER
 from handspell.dataset import IMG_EXT, LabelMode
+from handspell.image_handling import open_image_from_path
 
 
 def get_image_size_and_channels(image_path):
-    arr = np.asarray(Image.open(image_path).convert("RGB"), dtype="float32")
-    width, height, channels = arr.shape
-    return {"width": width,
-            "height": height,
-            "channels": channels
-            }
+    _, _, image_props = open_image_from_path(image_path)
+    return image_props
 
 def print_dataset_infos(infos_df):
     n_images = infos_df.shape[0]
     try:
-        n_people = infos_df["person"].nunique()
+        n_people = infos_df["user"].nunique()
     except:
         n_people = None
     min_width = infos_df["width"].min()
@@ -33,7 +30,7 @@ def print_dataset_infos(infos_df):
     min_channels = infos_df["channels"].min()
     max_channels = infos_df["channels"].min()
 
-    labels = list(infos_df["letter"].unique())
+    labels = list(infos_df["label"].unique())
     n_labels = len(labels)
 
     print(f"Dataset: {infos_df["dataset"].values[0]}")
@@ -55,45 +52,6 @@ def print_dataset_infos(infos_df):
         print(f"- Images ranging from {min_channels} to {max_channels} channels")
 
 
-# Plot example images for a given dataset
-def get_image_from_path(image_path):
-    img_arr = np.asarray(Image.open(image_path).convert("RGB"), dtype="float32")
-    img_arr / 255.
-    return img_arr
-
-
-def plot_example_images(dataset_df, path_prefix="",
-                        n_examples=5, figsize=(24, 10)):
-
-    n_letters = len(INDEX_TO_LETTER.keys())
-
-    # First half
-    half_i = int(n_letters/2)
-    f1, axs1 = plt.subplots(n_examples,half_i, figsize=figsize)
-    f2, axs2 = plt.subplots(n_examples,half_i, figsize=figsize)
-
-    for i, letter in INDEX_TO_LETTER.items():
-        letter_bool = dataset_df["letter"]==letter
-        print(letter, letter_bool.sum())
-
-        for j in range(n_examples):
-            if i < n_letters/2:
-                ax = axs1[j, i]
-            else:
-                ax = axs2[j, i-half_i]
-            if letter_bool.sum() > 0:
-                random_row = dataset_df.loc[letter_bool].sample().iloc[0]
-                img = get_image_from_path(
-                    image_path=os.path.join(path_prefix, random_row["image_path"]),
-                )
-                cmap = None
-                if random_row['channels'] == 1:
-                    cmap = "gray"
-                ax.imshow(img, cmap=cmap)
-            ax.set_title(letter)
-            ax.set_axis_off()
-
-    return f1, f2
 
 
 ########################################
@@ -105,8 +63,8 @@ def plot_example_images(dataset_df, path_prefix="",
 # A01 dataset functions
 
 A01_LABEL = "A01_kaggle_aslmnist"
-A01_IMAGE_PATH = "data/raw_data/{dataset_label}/{train_or_test}/{letter}/"
-A01_IMAGE_NAME = "{letter}_{number}.jpg"
+A01_IMAGE_PATH = "data/raw_data/{dataset_label}/images/{letter}/"
+A01_IMAGE_NAME = "{train_or_test}__{letter}__{number}.jpg"
 
 def get_image_from_row_a01(row, plot=True):
     letter = row["label"]
@@ -127,14 +85,18 @@ def save_as_images_a01(dataset_label=A01_LABEL):
 
         letter_folder = A01_IMAGE_PATH.format(
             dataset_label=dataset_label,
-            train_or_test="train",
             letter=letter)
 
         os.makedirs(letter_folder, exist_ok=True)
-        image_path = letter_folder+A01_IMAGE_NAME.format(letter=letter, number=i)
+        image_name = A01_IMAGE_NAME.format(train_or_test="train", letter=letter, number=i)
+        image_path = os.path.join(letter_folder, image_name)
         save_img(image_path, img_2828, quality=100)
 
-        train_samples += [{"letter": letter, "image_path": image_path}]
+        train_samples += [{
+            "label": letter,
+            "image_name":image_name,
+            "image_path": image_path
+        }]
 
     test_df = pd.read_csv(f"data/raw_data/{dataset_label}/sign_mnist_test.csv")
     test_samples = []
@@ -144,16 +106,19 @@ def save_as_images_a01(dataset_label=A01_LABEL):
 
         letter_folder = A01_IMAGE_PATH.format(
             dataset_label=dataset_label,
-            train_or_test="test",
             label=r["label"],
             letter=letter)
 
         os.makedirs(letter_folder,exist_ok=True)
-        image_path = letter_folder + "/" + \
-            A01_IMAGE_NAME.format(letter=letter, number=i)
+        image_name = A01_IMAGE_NAME.format(
+                    train_or_test="test", letter=letter, number=i)
+        image_path = os.path.join(letter_folder, image_name)
         save_img(image_path, img_2828, quality=100)
 
-        test_samples += [{"letter": letter, "image_path": image_path}]
+        test_samples += [{
+            "label": letter,
+            "image_name": image_name,
+            "image_path": image_path}]
 
     return train_samples, test_samples
 
@@ -212,7 +177,7 @@ def crawl_letter_dirs(root_path, add_infos={}):
 
                     image_infos = {
                         **add_infos,
-                        "label": label,
+                        "label": label.upper(),
                         "image_name": f,
                         **img_props,
                         "image_path": image_path
@@ -240,7 +205,7 @@ def crawl_flat_folder(root_path, add_infos={}):
 
             image_infos = {
                 **add_infos,
-                "label": label,
+                "label": label.upper(),
                 "image_name": f,
                 **img_props,
                 "image_path": image_path
@@ -255,7 +220,8 @@ def crawl_dataset(original_data_label:str,
                   raw_data_folder_path:str,
                   user_folders=False,
                   label_mode=LabelMode.FROM_SUBFOLDER,
-                  save_path=""):
+                  save_path="",
+                  add_infos={}):
 
     print(f"Dataset folder: {raw_data_folder_path}")
 
@@ -291,64 +257,102 @@ def crawl_dataset(original_data_label:str,
 
     return infos
 
-
-if __name__ == "__main__":
+def a01_data_infos():
     raw_dataset_label = "A01_kaggle_aslmnist"
     print(raw_dataset_label)
     infos_df = get_a01_dataset_infos(dataset_label=raw_dataset_label, save=True)
-    infos_df[""]
+    return infos_df
 
+def a02_data_infos():
     raw_dataset_label = "A02_kaggle_ahmedkhanak"
     raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "Gesture Image Data")
+    dataset_infos_path = os.path.join("data", "raw_data", raw_dataset_label)
     print(raw_dataset_label)
-    c = crawl_dataset(
+    infos_df = crawl_dataset(
             original_data_label=raw_dataset_label,
             raw_data_folder_path=raw_dataset_root_folder,
             user_folders=False,
             label_mode=LabelMode.FROM_SUBFOLDER,
-            save_path=os.path.join("data", "raw_data", raw_dataset_label)
+            save_path=dataset_infos_path,
+            add_infos={
+                "hand_cropped": True,
+                "preprocessed": False
+            }
     )
+    return infos_df
 
+def a03_data_infos():
     raw_dataset_label = "A03_kaggle_asl"
     raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "American")
+    dataset_infos_path = os.path.join("data", "raw_data", raw_dataset_label)
     print(raw_dataset_label)
-    c = crawl_dataset(
+    infos_df = crawl_dataset(
             original_data_label=raw_dataset_label,
             raw_data_folder_path=raw_dataset_root_folder,
             user_folders=False,
             label_mode=LabelMode.FROM_SUBFOLDER,
-            save_path=os.path.join("data", "raw_data", raw_dataset_label)
+            save_path=dataset_infos_path
     )
+    return infos_df
 
+def a04_data_infos():
     raw_dataset_label = "A04_mandalay_aslhg"
     raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "ASL_HG_36000", "asl_dataset")
+    dataset_infos_path = os.path.join("data", "raw_data", raw_dataset_label)
     print(raw_dataset_label)
-    c = crawl_dataset(
+    infos_df = crawl_dataset(
             original_data_label=raw_dataset_label,
             raw_data_folder_path=raw_dataset_root_folder,
-            user_folders=True,
-            label_mode=LabelMode.FROM_FILE_FIRST_LETTER,
-            save_path=os.path.join("data", "raw_data", raw_dataset_label)
+            user_folders=False,
+            label_mode=LabelMode.FROM_SUBFOLDER,
+            save_path=dataset_infos_path,
+            add_infos={
+                "hand_cropped": True,
+                "preprocessed": False
+            }
     )
+    # Add user infos from image name
+    infos_df["user"] = infos_df["image_name"].apply(lambda x: x.split('_')[0])
+    infos_df.to_csv(os.path.join(dataset_infos_path, "dataset_infos.csv"))
+    return infos_df
 
+def b01_data_infos():
     raw_dataset_label = "B01_original_aslmnist"
     raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "Dataset")
     print(raw_dataset_label)
-    c = crawl_dataset(
+    infos_df = crawl_dataset(
             original_data_label=raw_dataset_label,
             raw_data_folder_path=raw_dataset_root_folder,
             user_folders=True,
             label_mode=LabelMode.FROM_FILE_FIRST_LETTER,
             save_path=os.path.join("data", "raw_data", raw_dataset_label)
     )
+    return infos_df
 
+def b02_data_infos():
     raw_dataset_label = "B02_aslyset"
     raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "ASLYset", "images")
     print(raw_dataset_label)
-    c = crawl_dataset(
+    infos_df = crawl_dataset(
         original_data_label=raw_dataset_label,
         raw_data_folder_path=raw_dataset_root_folder,
         user_folders=True,
         label_mode=LabelMode.FROM_SUBFOLDER,
         save_path=os.path.join("data", "raw_data", raw_dataset_label)
     )
+    return infos_df
+
+
+if __name__ == "__main__":
+
+    # a01_data_infos()
+
+    # a02_data_infos()
+
+    # a03_data_infos()
+
+    a04_data_infos()
+
+    # b01_data_infos()
+
+    # b02_data_infos()

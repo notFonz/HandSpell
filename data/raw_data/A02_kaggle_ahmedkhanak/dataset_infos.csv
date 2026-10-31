@@ -1,4 +1,4 @@
-,dataset,label,image_name,width,height,channels,image_path
+,dataset,label,image_name,height,width,channels,image_path
 0,A02_kaggle_ahmedkhanak,0,63.jpg,50,50,3,data/raw_data/A02_kaggle_ahmedkhanak/Gesture Image Data/0/63.jpg
 1,A02_kaggle_ahmedkhanak,0,823.jpg,50,50,3,data/raw_data/A02_kaggle_ahmedkhanak/Gesture Image Data/0/823.jpg
 2,A02_kaggle_ahmedkhanak,0,1409.jpg,50,50,3,data/raw_data/A02_kaggle_ahmedkhanak/Gesture Image Data/0/1409.jpg

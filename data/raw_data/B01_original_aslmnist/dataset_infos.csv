@@ -1,4 +1,4 @@
-,dataset,user,label,image_name,width,height,channels,image_path
+,dataset,user,label,image_name,height,width,channels,image_path
 0,B01_original_aslmnist,user_10,C,C8.jpg,240,320,3,data/raw_data/B01_original_aslmnist/Dataset/user_10/C8.jpg
 1,B01_original_aslmnist,user_10,A,A0.jpg,240,320,3,data/raw_data/B01_original_aslmnist/Dataset/user_10/A0.jpg
 2,B01_original_aslmnist,user_10,L,L7.jpg,240,320,3,data/raw_data/B01_original_aslmnist/Dataset/user_10/L7.jpg
