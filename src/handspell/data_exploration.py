@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from random import random
 import pandas as pd
-from keras.preprocessing.image import img_to_array, load_img
+# from keras.preprocessing.image import img_to_array, load_img
 from tensorflow.keras.utils import save_img
 import os
 from PIL import Image
@@ -56,13 +56,15 @@ def print_dataset_infos(infos_df):
 
 
 # Plot example images for a given dataset
-def get_image_from_info_row(row):
-    img = load_img(row["image_path"])
-    return img
+def get_image_from_path(image_path):
+    img_arr = np.asarray(Image.open(image_path).convert("RGB"), dtype="float32")
+    img_arr / 255.
+    return img_arr
 
 
-def plot_example_images(dataset_df, get_image_from_row,
+def plot_example_images(dataset_df, path_prefix="",
                         n_examples=5, figsize=(24, 10)):
+
     n_letters = len(INDEX_TO_LETTER.keys())
 
     # First half
@@ -81,8 +83,13 @@ def plot_example_images(dataset_df, get_image_from_row,
                 ax = axs2[j, i-half_i]
             if letter_bool.sum() > 0:
                 random_row = dataset_df.loc[letter_bool].sample().iloc[0]
-                img = get_image_from_row(random_row)
-                ax.imshow(img, cmap="gray")
+                img = get_image_from_path(
+                    image_path=os.path.join(path_prefix, random_row["image_path"]),
+                )
+                cmap = None
+                if random_row['channels'] == 1:
+                    cmap = "gray"
+                ax.imshow(img, cmap=cmap)
             ax.set_title(letter)
             ax.set_axis_off()
 
@@ -173,7 +180,7 @@ def get_a01_dataset_infos(dataset_label=A01_LABEL, save=True):
     dataset_infos_df["preprocessed"] = True
 
     if save == True:
-        dataset_infos_df.to_csv(f"{dataset_path}/dataset_infos.csv", sep="\t")
+        dataset_infos_df.to_csv(f"{dataset_path}/dataset_infos.csv")
 
     return dataset_infos_df, dataset_path
 
@@ -288,7 +295,8 @@ def crawl_dataset(original_data_label:str,
 if __name__ == "__main__":
     raw_dataset_label = "A01_kaggle_aslmnist"
     print(raw_dataset_label)
-    get_a01_dataset_infos(dataset_label=raw_dataset_label, save=True)
+    infos_df = get_a01_dataset_infos(dataset_label=raw_dataset_label, save=True)
+    infos_df[""]
 
     raw_dataset_label = "A02_kaggle_ahmedkhanak"
     raw_dataset_root_folder = os.path.join("data", "raw_data", raw_dataset_label, "Gesture Image Data")
