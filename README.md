@@ -18,10 +18,8 @@ We want to build a bridge, one letter at a time.
 
 Originally an educational group project to practice Data Science & AI skills.
 
-
 Project [presentation](
 https://docs.google.com/presentation/d/1Xz8Q6KtlDj0mV3MGL5ygtARrU_AmtbRg9EsATKX838w/edit?usp=sharing)
-
 
 
 Original team members:
@@ -33,8 +31,7 @@ Original team members:
 Pitched project [presentation](
 https://docs.google.com/presentation/d/1jcQMq_tmHvUgpGdeSIOcO710AYkrgIvgbfjN2BN1O7g/edit?slide=id.p1#slide=id.p1) by Afonso Silva in October 2026.
 
-
-
+See "Contributions section" for individual contributions.
 
 # API
 
@@ -46,26 +43,14 @@ Interactive API documentation:
       Method: POST
       Endpoint: /predict
       Local URL: http://localhost:8080/predict
-      Purpose: Receives hand landmark coordinates and predicts the corresponding hand sign language letter.
-
-      Method: POST
-      Endpoint: /predict_and_save_temp
-      Local URL: http://localhost:8080/predict_and_save_temp
-      Purpose: Predicts the corresponding hand sign language letter from MediaPipe hand landmark coordinates using a trained XGBoost classifier and saves the prediction temporarily.
-
-- Delete
-
-      Method: DELETE
-      Endpoint: /clear_temp
-      Local URL: http://localhost:8080/clear_temp
-      Purpose: Delete temporary files.
+      Purpose: Receives image, detects hand landmark coordinates and predicts the corresponding hand sign language letter.
 
 - Return Image
 
       Method: GET
       Endpoint: /sign/{letter}
       Local URL: http://localhost:8080/sign/{Letter}
-      Purpose: Return image based on the given letter
+      Purpose: Receives letter, returns a fingerspelling image of that letter
 
 # Usage
 
@@ -86,22 +71,40 @@ HandSpell provides the following core functionalities:
 
 Make sure the following tools are installed:
 
-Python (3.12.9)
-Git (windows: sudo apt-get install git, macOS: brew install git)
-uv, a Python package and project manager (pip install uv)
+- **Git**
+  ```bash
+  # Windows
+  winget install --id Git.Git -e --source winget
+  # Linux
+  sudo apt-get install git
+  # MacOS
+  brew install git
+  ```
+- **uv**: a Python package and project manager
+  ```bash
+  pip install uv
+  ```
+- **Python** `3.12` or higher - tested with `3.12`
+  ```bash
+  uv python install 3.12
+  ```
 
 ## 1. Get the project
 
 Clone the repository and navigate to the project directory:
 
-git clone notFonz/HandSpell
+```bash
+git clone https://github.com/notFonz/HandSpell.git
 cd HandSpell
+```
 
 ## 2. Install dependencies
 
 Install the project dependencies using uv:
 
+```bash
 uv sync
+```
 
 ## Dockerization
 
@@ -176,7 +179,49 @@ make docker_deploy
 
 # Data download
 
-On max to unrar a folder:
-```bash
-tar -xvf ASLYset.rar
-```
+See each dataset's `description.md` for instructions to download each dataset.
+
+
+### Contributions
+
+Two very different pipelines were explored during the project weeks:
+
+- **v1** = YOLO hand detection + cropping, then a CNN on 28×28 greyscale images (Sign Language MNIST); did not generalize well on pictures we took with our webcams
+- **v2** = MediaPipe hand landmarks + XGBoost, trained on a merged multi-source dataset ("megadataset"); used for demo day - On held-out users (not seen in training): hands detected in 100% of images, and ~80% of detected signs classified correctly.
+
+Contributions:
+- **Afonso Silva**
+  - Project author; repository setup, Makefile and README boilerplate
+  - Dataset research, cleaning (`data_cleaning.py`) and merging into the megadataset (`merge_asl_datasets.py`)
+  - v1 CNN classifier on Sign Language MNIST exploration (Kaggle and local notebook)
+  - v1 CNN refactoring Kazim's solution into handspell package (`model.py`: build, train, save/load, predict)
+  - v2 MediaPipe hand detection and MediaPipe + XGBoost working in local notebook
+  - Text-to-sign feature: `text_to_image.py` and the `/sign/{letter}` API endpoint
+  - Code review
+
+- **Delphine Pessoa**
+  - Project management (Trello); project structure; dataset naming convention and documentation
+  - v1 YOLO hand detection and 28×28 preprocessing notebook
+  - v1 API refactored to use the `handspell` package
+  - v2 refactoring Colab notebook into `handspell` package (landmark detection `model_landmarks.py`, training and evaluation - `model_landmarks_training.py`,  `dataset.py`)
+  - v2 API with MediaPipe + XGBoost; Docker image and Cloud Run deployment
+  - Code review
+
+- **Maximilian Greger**
+  - v1 preprocessing pipeline: YOLO hand detection and cropping (`data_preprocessing.py`)
+  - v2 training, XGBoost hyperparameter tuning and evaluation on megadataset
+  - README
+
+- **Kazim Hussain Mohammed**
+  - Dataset research
+  - v1 CNN classifier notebook and evaluation (Colab notebook)
+  - v1 API with `/predict` endpoint; first Dockerfile and deployment configuration
+  - v2 first MediaPipe + XGBoost notebook with model evaluation trained on one dataset (Colab)
+  - Explored model for videos with MediaPipe
+
+## License
+
+- **Code** (`src/`, `api/`, `notebooks/`, `Dockerfile`, `Makefile`): [GPL-3.0](LICENSE)
+- **Data, images and documentation** (`data/`, `img/`, `*.md`): [CC BY-SA 4.0](LICENSE-DATA)
+
+Third-party datasets in `data/raw_data/` keep their original licenses; see each `description.md`.
