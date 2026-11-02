@@ -26,6 +26,7 @@ ENV HAND_LANDMARKER_PATH=models/hand_landmarker_model.task \
 ASL_MODEL_LANDMARKS_PATH=models/asl_model.joblib
 # Reduce MediaPipe logging to only errors
 ENV GLOG_minloglevel=2 TF_CPP_MIN_LOG_LEVEL=2
+ENV ENABLE_DEV_ENDPOINTS=0
 
 RUN uv sync
 
