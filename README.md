@@ -208,9 +208,11 @@ Contributions:
   - Code review
 
 - **Maximilian Greger**
-  - v1 preprocessing pipeline: YOLO hand detection and cropping (`data_preprocessing.py`)
-  - v2 training, XGBoost hyperparameter tuning and evaluation on megadataset
-  - README
+  - v1 preprocessing pipeline: YOLO hand detection and cropping (data_preprocessing.py)
+    - on one image
+    - on a dataset folder (specifically `B01_original_mnist`)
+  - v2 training, XGBoost hyperparameter tuning and evaluation on megadataset (particularly learning curve calculation and visualization)
+  - README (API Endpoints, Usage, Setup)
 
 - **Kazim Hussain Mohammed**
   - Dataset research
