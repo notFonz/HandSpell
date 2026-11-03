@@ -19,6 +19,7 @@ from shutil import rmtree, copyfileobj
 import joblib
 from xgboost import XGBClassifier
 import threading
+from uuid import uuid4
 
 # from handspell.data_preprocessing import load_model as load_preprocessing_model
 
@@ -80,6 +81,12 @@ def root():
 # FastAPI runs plain `def` endpoints in a threadpool, so a threading.Lock is needed here.
 predict_lock = threading.Lock()
 
+def _locked_predict(image_path, hand_model, asl_model):
+    with predict_lock:
+        return preprocess_and_predict_api(image_path=image_path,
+                                          hand_landmarker_model=hand_model,
+                                          letter_classification_model=asl_model)
+
 @app.post("/predict")
 def predict(request: Request, file: UploadFile):
     # Use a temporary directory to store the uploaded image before processing it.
@@ -92,37 +99,12 @@ def predict(request: Request, file: UploadFile):
             copyfileobj(file.file, destination)
 
         # Only the landmarker and classifier call needs to be serialized.
-        with predict_lock:
-            # Call the preprocess_and_predict_api function with the temporary image path and the loaded models.
-            result = preprocess_and_predict_api(
-                image_path=str(image_path),
-                # image_path="data/raw_data/A05_notFonz_original/images/Afonso/H0.jpg",
-                hand_landmarker_model=request.app.state.hand_model,
-                letter_classification_model=request.app.state.asl_model,
-            )
+        result = _locked_predict(image_path=str(image_path),
+                        hand_model=request.app.state.hand_model,
+                        asl_model=request.app.state.asl_model)
 
     # After exiting the context manager, the temporary directory and image are automatically removed.
     return result
-
-
-@app.post("/predict_and_save_temp")
-async def predict_and_save(request: Request, file: UploadFile = File(...)):
-
-    async with aiofiles.open(f"{TEMPORARY_FOLDER}/{file.filename}", 'wb') as out_file:
-        contents = await file.read()
-        await out_file.write(contents)  # async write
-
-    return await run_in_threadpool(
-        preprocess_and_predict_api,
-        f"{TEMPORARY_FOLDER}/{file.filename}",
-        request.app.state.hand_model,
-        request.app.state.asl_model
-    )
-
-@app.delete("/clear_temp")
-def clear_temp():
-    reset_temp_folder()
-    return "Temporary files trashed 🗑️✅"
 
 
 @app.get("/sign/{letter}")
@@ -147,3 +129,29 @@ def letter_to_image(request: Request, letter: str) -> FileResponse:
         image = FileResponse(path_result)
 
     return image
+
+
+if os.environ.get("ENABLE_DEV_ENDPOINTS") == "1":
+    @app.post("/predict_and_save_temp")
+    async def predict_and_save(request: Request, file: UploadFile = File(...)):
+        suffix = Path(file.filename or "").suffix.lower()
+        if suffix not in {".jpg", ".jpeg", ".png"}:
+            raise HTTPException(status_code=400, detail="Only .jpg, .jpeg or .png files are accepted")
+
+        image_path = Path(TEMPORARY_FOLDER) / f"{uuid4().hex}{suffix}"
+
+        contents = await file.read()
+        async with aiofiles.open(image_path, "wb") as out_file:
+            await out_file.write(contents)
+
+        return await run_in_threadpool(
+            _locked_predict,
+            image_path,
+            request.app.state.hand_model,
+            request.app.state.asl_model,
+        )
+
+    @app.delete("/clear_temp")
+    def clear_temp():
+        reset_temp_folder()
+        return "Temporary files trashed 🗑️✅"
