@@ -4,7 +4,12 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [
-    { name = "Afonso Silva"}
+    { name = "Afonso Silva",
+      name = "Delphine Pessoa",
+      name = "Maximilian Greger",
+      name = "Kazim Hussain Mohammed"
+    }
+license = "GPL-3.0-or-later"
 ]
 requires-python = ">=3.12"
 dependencies = [
